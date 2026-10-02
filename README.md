@@ -60,8 +60,7 @@ Este projeto tem como objetivo desenvolver um sistema que centralize essas infor
 
 ### Pré-requisitos
 
-- Python 3.13+ instalado
-- [uv](https://docs.astral.sh/uv/) (recomendado) ou pip
+- Python 3.13+ instalado (com pip)
 - Flutter SDK instalado
 ---
 
@@ -76,18 +75,7 @@ cd J-G-Estetica-Automotiva/backend
 
 # Crie o arquivo de configuração a partir do modelo (ajuste os valores se precisar)
 cp .env.example .env
-```
 
-**Opção 1 — com uv (recomendado):**
-
-```bash
-# Instala as dependências e inicia o servidor em modo desenvolvimento
-uv run fastapi dev src/app/main.py
-```
-
-**Opção 2 — com pip:**
-
-```bash
 # Crie e ative um ambiente virtual
 python -m venv .venv
 .venv\Scripts\activate        # Windows
@@ -96,11 +84,11 @@ python -m venv .venv
 # Instale as dependências
 pip install -r requirements.txt
 
-# Inicie o servidor
+# Inicie o servidor em modo desenvolvimento
 uvicorn app.main:app --reload --app-dir src
 ```
 
-> Execute os comandos sempre de dentro da pasta `backend/`, para que o arquivo `.env` seja encontrado.
+> Execute os comandos de dentro da pasta `backend/`. O arquivo `.env` deve ficar em `backend/.env` (ao lado do `.env.example`).
 
 A API estará disponível em: `http://localhost:8000`  
 Verificação de saúde: `http://localhost:8000/health`  
@@ -120,11 +108,12 @@ Documentação automática: `http://localhost:8000/docs`
 
 #### 📦 Adicionando dependências
 
-As dependências são gerenciadas com o `uv`. Ao adicionar uma nova, atualize também o `requirements.txt`:
+As dependências são gerenciadas com o `pip`. Ao adicionar uma nova, fixe a versão no `requirements.txt` e inclua o pacote no `pyproject.toml`:
 
 ```bash
-uv add nome-do-pacote
-uv export --format requirements-txt --no-hashes --no-emit-project --no-dev -o requirements.txt
+pip install nome-do-pacote
+pip show nome-do-pacote        # confira a versão instalada
+# adicione "nome-do-pacote==X.Y.Z" ao requirements.txt
 ```
 
 ---
@@ -157,8 +146,7 @@ flutter run
 │ │ ├── repositories/ # Integração com o banco
 │ │ └── services/ # Regras de negócio
 │ ├── .env.example # Modelo das variáveis de ambiente
-│ ├── pyproject.toml # Dependências (uv)
-│ ├── uv.lock # Versões travadas (uv)
+│ ├── pyproject.toml # Metadados do projeto
 │ └── requirements.txt # Dependências Python (pip)
 │
 ├── frontend/
