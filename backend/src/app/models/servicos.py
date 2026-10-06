@@ -9,10 +9,10 @@ from app.core.database import Base
 class Servico(Base):
     """Serviço oferecido pela estética (ex.: lavagem, polimento)."""
 
-    __tablename__ = "servicos"
+    __tablename__ = "cadser"
     __table_args__ = (
-        CheckConstraint("duracao_min > 0", name="ck_servicos_duracao_positiva"),
-        CheckConstraint("preco >= 0", name="ck_servicos_preco_nao_negativo"),
+        CheckConstraint("duracao_min > 0", name="ck_cadser_duracao_positiva"),
+        CheckConstraint("preco >= 0", name="ck_cadser_preco_nao_negativo"),
     )
 
     id: Mapped[int] = mapped_column(

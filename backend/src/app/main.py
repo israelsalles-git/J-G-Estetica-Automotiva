@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 
 import app.models  # noqa: F401  (registra os models no Base.metadata)
-from app.api import health, servicos
+from app.api import clientes, health, servicos
 from app.core.config import settings
 from app.core.database import Base, engine
+from app.services.exceptions import ConflitoError, NaoEncontradoError
 
 
 @asynccontextmanager
@@ -21,8 +23,15 @@ app = FastAPI(
 
 app.include_router(health.router)
 app.include_router(servicos.router)
+app.include_router(clientes.router)
 
 
-@app.get("/")
-def home():
-    return {"mensagem": "Minha primeira API"}
+# Converte os erros de negócio (services/) em respostas HTTP.
+@app.exception_handler(NaoEncontradoError)
+async def nao_encontrado_handler(_: Request, exc: NaoEncontradoError):
+    return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": str(exc)})
+
+
+@app.exception_handler(ConflitoError)
+async def conflito_handler(_: Request, exc: ConflitoError):
+    return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})

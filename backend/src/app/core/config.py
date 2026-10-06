@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # Pode colar a string do Supabase (Connect > Session pooler) como vem; ela é ajustada abaixo.
-    database_url: str = "postgresql://postgres.wstnatibgyfetrkmgvwy:[J&GAutomot2026]@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/jg_estetica"
 
     # Token exigido nas rotas protegidas (Authorization: Bearer <token>). Vazio = bloqueia tudo.
     api_token: str = ""
