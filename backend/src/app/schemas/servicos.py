@@ -14,8 +14,8 @@ class ServicoCreate(BaseModel):
     preco: Preco
 
 
+#Todos os campos opcionais: só o que for enviado é alterado
 class ServicoUpdate(BaseModel):
-    """Todos os campos opcionais: só o que for enviado é alterado."""
 
     nome: Nome | None = None
     duracao_min: DuracaoMin | None = None

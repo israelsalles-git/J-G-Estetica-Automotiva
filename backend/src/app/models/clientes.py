@@ -4,10 +4,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
+#Modelo Clientes
 class Cliente(Base):
-    """Cliente da estética."""
 
     __tablename__ = "cadcli"
+    
+    #validações
     __table_args__ = (
         CheckConstraint("char_length(cpf_cnpj) IN (11, 14)", name="ck_cadcli_cpf_cnpj_tamanho"),
     )
@@ -27,6 +29,12 @@ class Cliente(Base):
         String(14),
         nullable=True,
         unique=True
+    )
+
+    telefone: Mapped[str | None] = mapped_column(
+        String(11),
+        nullable=True,
+        index=True
     )
 
     ativo: Mapped[bool] = mapped_column(

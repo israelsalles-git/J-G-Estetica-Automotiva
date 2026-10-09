@@ -12,22 +12,25 @@ router = APIRouter(prefix="/clientes", tags=["clientes"], dependencies=[Depends(
 
 @router.get("", response_model=list[ClienteRead])
 def listar_clientes(incluir_inativos: bool = False, db: Session = Depends(get_db)):
-    """Lista os clientes. Por padrão, apenas os ativos."""
+    """Lista os clientes. Por padrão, apenas os ativos"""
     return clientes_service.listar(db, incluir_inativos)
 
 
 @router.get("/{cliente_id}", response_model=ClienteRead)
 def obter_cliente(cliente_id: int, db: Session = Depends(get_db)):
+    """Busca cliente por ID"""
     return clientes_service.obter(db, cliente_id)
 
 
 @router.post("", response_model=ClienteRead, status_code=status.HTTP_201_CREATED)
 def criar_cliente(dados: ClienteCreate, db: Session = Depends(get_db)):
+    """Criar cliente"""
     return clientes_service.criar(db, dados)
 
 
 @router.put("/{cliente_id}", response_model=ClienteRead)
 def atualizar_cliente(cliente_id: int, dados: ClienteUpdate, db: Session = Depends(get_db)):
+    """Atualiza cliente pelo ID"""
     return clientes_service.atualizar(db, cliente_id, dados)
 
 

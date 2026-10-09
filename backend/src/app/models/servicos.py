@@ -5,11 +5,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
-
+#Modelo Serviços 
 class Servico(Base):
-    """Serviço oferecido pela estética (ex.: lavagem, polimento)."""
 
     __tablename__ = "cadser"
+    
+    #validações
     __table_args__ = (
         CheckConstraint("duracao_min > 0", name="ck_cadser_duracao_positiva"),
         CheckConstraint("preco >= 0", name="ck_cadser_preco_nao_negativo"),
