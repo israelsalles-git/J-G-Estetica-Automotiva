@@ -81,8 +81,8 @@ python -m venv .venv
 .venv\Scripts\activate        # Windows
 # source .venv/bin/activate   # Linux/macOS
 
-# Instale as dependências
-pip install -r requirements.txt
+# Instale as dependências (inclui as de teste; em produção use requirements.txt)
+pip install -r requirements-dev.txt
 
 # Inicie o servidor em modo desenvolvimento
 uvicorn app.main:app --reload --app-dir src
@@ -106,6 +106,14 @@ Documentação automática: `http://localhost:8000/docs`
 
 > O `.env` não é versionado. Nunca suba senhas para o repositório — use o `.env.example` como modelo.
 
+#### 🧪 Testes
+
+Os testes usam um banco SQLite em memória (não tocam no PostgreSQL). Com o ambiente virtual ativo, dentro de `backend/`:
+
+```bash
+pytest
+```
+
 #### 📦 Adicionando dependências
 
 As dependências são gerenciadas com o `pip`. Ao adicionar uma nova, fixe a versão no `requirements.txt` e inclua o pacote no `pyproject.toml`:
@@ -115,6 +123,8 @@ pip install nome-do-pacote
 pip show nome-do-pacote        # confira a versão instalada
 # adicione "nome-do-pacote==X.Y.Z" ao requirements.txt
 ```
+
+Dependências usadas só em desenvolvimento/testes (ex.: `pytest`) vão no `requirements-dev.txt` e na seção `[project.optional-dependencies] dev` do `pyproject.toml`.
 
 ---
 
@@ -147,7 +157,9 @@ flutter run
 │ │ └── services/ # Regras de negócio
 │ ├── .env.example # Modelo das variáveis de ambiente
 │ ├── pyproject.toml # Metadados do projeto
-│ └── requirements.txt # Dependências Python (pip)
+│ ├── tests/ # Testes automatizados (pytest)
+│ ├── requirements.txt # Dependências Python (pip)
+│ └── requirements-dev.txt # Dependências de desenvolvimento/testes
 │
 ├── frontend/
 │ ├── lib/

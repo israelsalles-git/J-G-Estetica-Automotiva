@@ -1,0 +1,12 @@
+# Dependências de desenvolvimento (testes), além das de produção.
+# Instalação: pip install -r requirements-dev.txt
+# Ao adicionar um pacote novo, inclua-o também em pyproject.toml (seção optional-dependencies.dev).
+-r requirements.txt
+
+pytest==9.1.1
+iniconfig==2.3.1
+    # via pytest
+packaging==26.3
+    # via pytest
+pluggy==1.6.0
+    # via pytest

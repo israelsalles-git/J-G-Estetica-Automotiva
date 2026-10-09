@@ -11,6 +11,19 @@ dependencies = [
     "psycopg[binary]>=3.3.6",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers"
+markers = [
+    "api: testes de endpoints HTTP",
+]
+
 [build-system]
 requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
