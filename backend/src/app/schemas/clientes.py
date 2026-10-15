@@ -14,10 +14,8 @@ def _normalizar_cpf_cnpj(valor: str | None) -> str | None:
     return digitos
 
 
-def _normalizar_telefone(valor: str | None) -> str | None:
+def _normalizar_telefone(valor: str) -> str:
     """Aceita com ou sem máscara (ex.: (11) 91234-5678) e guarda só os dígitos (DDD + número)."""
-    if valor is None:
-        return None
     digitos = re.sub(r"\D", "", valor)
     if len(digitos) not in (10, 11):
         raise ValueError("Telefone deve ter 10 (fixo) ou 11 (celular) dígitos, incluindo DDD")
@@ -31,7 +29,7 @@ CpfCnpj = Annotated[
     Field(description="CPF (11 dígitos) ou CNPJ (14 dígitos), com ou sem máscara"),
 ]
 Telefone = Annotated[
-    str | None,
+    str,
     AfterValidator(_normalizar_telefone),
     Field(description="Telefone com DDD (10 ou 11 dígitos), com ou sem máscara"),
 ]
@@ -40,7 +38,7 @@ Telefone = Annotated[
 class ClienteCreate(BaseModel):
     nome: Nome
     cpf_cnpj: CpfCnpj = None
-    telefone: Telefone = None
+    telefone: Telefone
 
 
 #Todos os campos opcionais: só o que for enviado é alterado
@@ -48,7 +46,7 @@ class ClienteUpdate(BaseModel):
 
     nome: Nome | None = None
     cpf_cnpj: CpfCnpj = None
-    telefone: Telefone = None
+    telefone: Telefone | None = None
     ativo: bool | None = None
 
 
@@ -58,5 +56,5 @@ class ClienteRead(BaseModel):
     id: int
     nome: str
     cpf_cnpj: str | None
-    telefone: str | None
+    telefone: str
     ativo: bool

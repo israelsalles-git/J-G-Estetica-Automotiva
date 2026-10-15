@@ -31,9 +31,9 @@ class Cliente(Base):
         unique=True
     )
 
-    telefone: Mapped[str | None] = mapped_column(
+    telefone: Mapped[str] = mapped_column(
         String(11),
-        nullable=True,
+        nullable=False,
         index=True
     )
 
