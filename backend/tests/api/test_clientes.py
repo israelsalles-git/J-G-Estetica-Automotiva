@@ -5,11 +5,13 @@ pytestmark = pytest.mark.api
 URL = "/clientes"
 CPF = "12345678900"
 CNPJ = "12345678000199"
+CELULAR = "11912345678"
+FIXO = "1132345678"
 
 
-def criar_cliente(client, nome="Maria", cpf_cnpj=CPF):
+def criar_cliente(client, nome="Maria", cpf_cnpj=CPF, telefone=CELULAR):
     """Atalho: cria um cliente e devolve a resposta."""
-    return client.post(URL, json={"nome": nome, "cpf_cnpj": cpf_cnpj})
+    return client.post(URL, json={"nome": nome, "cpf_cnpj": cpf_cnpj, "telefone": telefone})
 
 
 # ---------------------------------------------------------------------------
@@ -39,6 +41,7 @@ class TestCriar:
         assert corpo["id"] > 0
         assert corpo["nome"] == "Maria"
         assert corpo["cpf_cnpj"] == CPF
+        assert corpo["telefone"] == CELULAR
         assert corpo["ativo"] is True
 
     def test_cria_cliente_com_cnpj(self, client):
@@ -48,7 +51,7 @@ class TestCriar:
         assert resposta.json()["cpf_cnpj"] == CNPJ
 
     def test_cria_cliente_sem_cpf_cnpj(self, client):
-        resposta = client.post(URL, json={"nome": "Sem Documento"})
+        resposta = client.post(URL, json={"nome": "Sem Documento", "telefone": CELULAR})
 
         assert resposta.status_code == 201
         assert resposta.json()["cpf_cnpj"] is None
@@ -87,7 +90,7 @@ class TestCriar:
         assert resposta.status_code == 422
 
     def test_nome_ausente_retorna_422(self, client):
-        resposta = client.post(URL, json={"cpf_cnpj": CPF})
+        resposta = client.post(URL, json={"cpf_cnpj": CPF, "telefone": CELULAR})
 
         assert resposta.status_code == 422
 
@@ -100,6 +103,104 @@ class TestCriar:
         resposta = criar_cliente(client, nome="a" * 121)
 
         assert resposta.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Telefone (obrigatório no POST, opcional no PUT)
+# ---------------------------------------------------------------------------
+class TestTelefone:
+    def test_cria_com_celular_11_digitos(self, client):
+        resposta = criar_cliente(client, telefone=CELULAR)
+
+        assert resposta.status_code == 201
+        assert resposta.json()["telefone"] == CELULAR
+
+    def test_cria_com_fixo_10_digitos(self, client):
+        resposta = criar_cliente(client, telefone=FIXO)
+
+        assert resposta.status_code == 201
+        assert resposta.json()["telefone"] == FIXO
+
+    @pytest.mark.parametrize(
+        ("telefone", "esperado"),
+        [
+            ("(11) 91234-5678", CELULAR),
+            ("11 91234 5678", CELULAR),
+            ("(11) 3234-5678", FIXO),
+        ],
+    )
+    def test_remove_mascara_do_telefone(self, client, telefone, esperado):
+        resposta = criar_cliente(client, telefone=telefone)
+
+        assert resposta.status_code == 201
+        assert resposta.json()["telefone"] == esperado
+
+    def test_telefone_ausente_retorna_422(self, client):
+        resposta = client.post(URL, json={"nome": "Maria", "cpf_cnpj": CPF})
+
+        assert resposta.status_code == 422
+        erro = resposta.json()["detail"][0]
+        assert erro["loc"] == ["body", "telefone"]
+        assert erro["type"] == "missing"
+
+    def test_telefone_nulo_retorna_422(self, client):
+        resposta = criar_cliente(client, telefone=None)
+
+        assert resposta.status_code == 422
+
+    @pytest.mark.parametrize(
+        "telefone", ["", "abc", "123", "119123456", "119123456789", "(11) 9123-456"]
+    )
+    def test_telefone_com_tamanho_invalido_retorna_422(self, client, telefone):
+        resposta = criar_cliente(client, telefone=telefone)
+
+        assert resposta.status_code == 422
+        assert "Telefone deve ter 10 (fixo) ou 11 (celular)" in resposta.json()["detail"][0]["msg"]
+
+    def test_telefone_numerico_retorna_422(self, client):
+        resposta = criar_cliente(client, telefone=11912345678)
+
+        assert resposta.status_code == 422
+
+    def test_telefone_nao_e_unico(self, client):
+        criar_cliente(client, nome="Maria", cpf_cnpj=CPF, telefone=CELULAR)
+
+        resposta = criar_cliente(client, nome="João", cpf_cnpj=CNPJ, telefone=CELULAR)
+
+        assert resposta.status_code == 201
+
+    def test_telefone_retornado_na_listagem(self, client):
+        criar_cliente(client, telefone="(11) 3234-5678")
+
+        resposta = client.get(URL)
+
+        assert resposta.json()[0]["telefone"] == FIXO
+
+    def test_altera_telefone_e_normaliza(self, client):
+        criado = criar_cliente(client).json()
+
+        resposta = client.put(f"{URL}/{criado['id']}", json={"telefone": "(11) 3234-5678"})
+
+        assert resposta.status_code == 200
+        corpo = resposta.json()
+        assert corpo["telefone"] == FIXO
+        assert corpo["nome"] == criado["nome"]
+
+    def test_put_telefone_invalido_retorna_422(self, client):
+        criado = criar_cliente(client).json()
+
+        resposta = client.put(f"{URL}/{criado['id']}", json={"telefone": "123"})
+
+        assert resposta.status_code == 422
+        assert client.get(f"{URL}/{criado['id']}").json()["telefone"] == CELULAR
+
+    def test_put_telefone_nulo_mantem_o_atual(self, client):
+        criado = criar_cliente(client).json()
+
+        resposta = client.put(f"{URL}/{criado['id']}", json={"telefone": None})
+
+        assert resposta.status_code == 200
+        assert resposta.json()["telefone"] == CELULAR
 
 
 # ---------------------------------------------------------------------------
@@ -186,6 +287,7 @@ class TestAtualizar:
         corpo = resposta.json()
         assert corpo["nome"] == "Maria Silva"
         assert corpo["cpf_cnpj"] == CPF  # não enviado: permanece igual
+        assert corpo["telefone"] == CELULAR  # não enviado: permanece igual
         assert corpo["ativo"] is True
 
     def test_altera_cpf_cnpj_e_normaliza(self, client):
