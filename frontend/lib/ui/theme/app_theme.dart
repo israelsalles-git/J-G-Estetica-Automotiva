@@ -4,17 +4,17 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
  
-  static const bg = Color(0xFF0B0F1A);
-  static const bgAlt = Color(0xFF0D1322);
-  static const nav = Color(0xFF0E1424);
-  static const footer = Color(0xFF080B14);
-  static const card = Color(0xFF131A2B);
-  static const card2 = Color(0xFF1A2236);
-  static const cyan = Color(0xFF22D3EE);
-  static const blue = Color(0xFF2563EB);
-  static const muted = Color(0xFF94A3B8);
-  static const border = Color(0xFF243049);
-  static const whatsapp = Color(0xFF25D366);
+static const bg = Color(0xFF0B0506);
+  static const bgAlt = Color(0xFF140809);
+  static const nav = Color(0xFF100607);
+  static const footer = Color(0xFF080303);
+  static const card = Color(0xFF1A0B0D);
+  static const card2 = Color(0xFF260D13);
+  static const cyan = Color(0xFFFF3038);
+  static const blue = Color(0xFFB90918);
+  static const muted = Color(0xFFB0A0A2);
+  static const border = Color(0xFF48151B);
+  static const whatsapp = Color(0xFFB90918);
  
   static const gradient = LinearGradient(colors: [blue, cyan]);
 }
