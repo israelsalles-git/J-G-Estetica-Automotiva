@@ -7,6 +7,7 @@ from sqlalchemy.pool import StaticPool
 import app.models  # noqa: F401  (registra os models no Base.metadata)
 from app.core.config import settings
 from app.core.database import Base, get_db
+from app.integrations.google_agenda import get_agenda
 from app.main import app
 
 TOKEN_TESTE = "token-de-teste"
@@ -33,22 +34,49 @@ def db_session():
     engine.dispose()
 
 
+class AgendaFake:
+    """Substitui o Google Agenda nos testes, guardando os eventos em memória."""
+
+    def __init__(self):
+        self.eventos = {}
+        self._proximo_id = 1
+
+    def criar_evento(self, evento):
+        evento_id = f"evento-{self._proximo_id}"
+        self._proximo_id += 1
+        self.eventos[evento_id] = evento
+        return evento_id
+
+    def atualizar_evento(self, evento_id, evento):
+        self.eventos[evento_id] = evento
+
+    def remover_evento(self, evento_id):
+        self.eventos.pop(evento_id, None)
+
+
 @pytest.fixture
-def client(db_session, monkeypatch):
+def agenda():
+    return AgendaFake()
+
+
+@pytest.fixture
+def client(db_session, agenda, monkeypatch):
     """Cliente HTTP autenticado, usando o banco de teste.
 
     Sem `with`, para não disparar o lifespan (que faria create_all no banco real).
     """
     monkeypatch.setattr(settings, "api_token", TOKEN_TESTE)
     app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_agenda] = lambda: agenda
     yield TestClient(app, headers={"Authorization": f"Bearer {TOKEN_TESTE}"})
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def client_sem_token(db_session, monkeypatch):
+def client_sem_token(db_session, agenda, monkeypatch):
     """Cliente HTTP sem header de autenticação."""
     monkeypatch.setattr(settings, "api_token", TOKEN_TESTE)
     app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_agenda] = lambda: agenda
     yield TestClient(app)
     app.dependency_overrides.clear()

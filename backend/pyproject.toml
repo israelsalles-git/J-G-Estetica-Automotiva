@@ -15,6 +15,11 @@ dependencies = [
 dev = [
     "pytest>=8",
 ]
+# Integração com o Google Agenda (só necessária se GOOGLE_CALENDAR_ID estiver configurado)
+google = [
+    "google-api-python-client>=2.200",
+    "google-auth>=2.60",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

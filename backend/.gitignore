@@ -11,3 +11,6 @@ wheels/
 
 # Variáveis de ambiente
 .env
+
+# Chave da conta de serviço do Google
+*credentials*.json

@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     # Token exigido nas rotas protegidas (Authorization: Bearer <token>). Vazio = bloqueia tudo.
     api_token: str = ""
 
+    # Fuso usado nos agendamentos: datas sem fuso são interpretadas nele.
+    timezone: str = "America/Sao_Paulo"
+
+    # Google Agenda: a integração só liga quando os dois campos estiverem preenchidos.
+    google_calendar_id: str = ""
+    google_credentials_file: str = ""
+
     @field_validator("database_url")
     @classmethod
     def normalizar_database_url(cls, url: str) -> str:

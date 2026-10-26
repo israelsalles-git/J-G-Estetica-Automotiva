@@ -4,10 +4,10 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 import app.models  # noqa: F401  (registra os models no Base.metadata)
-from app.api import clientes, health, servicos
+from app.api import agendamentos, clientes, health, servicos
 from app.core.config import settings
 from app.core.database import Base, engine
-from app.services.exceptions import ConflitoError, NaoEncontradoError
+from app.services.exceptions import ConflitoError, IntegracaoError, NaoEncontradoError
 
 
 @asynccontextmanager
@@ -24,6 +24,7 @@ app = FastAPI(
 app.include_router(health.router)
 app.include_router(servicos.router)
 app.include_router(clientes.router)
+app.include_router(agendamentos.router)
 
 
 # Converte os erros de negócio (services/) em respostas HTTP.
@@ -35,3 +36,8 @@ async def nao_encontrado_handler(_: Request, exc: NaoEncontradoError):
 @app.exception_handler(ConflitoError)
 async def conflito_handler(_: Request, exc: ConflitoError):
     return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
+
+
+@app.exception_handler(IntegracaoError)
+async def integracao_handler(_: Request, exc: IntegracaoError):
+    return JSONResponse(status_code=status.HTTP_502_BAD_GATEWAY, content={"detail": str(exc)})
