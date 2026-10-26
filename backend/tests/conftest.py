@@ -61,10 +61,7 @@ def agenda():
 
 @pytest.fixture
 def client(db_session, agenda, monkeypatch):
-    """Cliente HTTP autenticado, usando o banco de teste.
-
-    Sem `with`, para não disparar o lifespan (que faria create_all no banco real).
-    """
+    """Cliente HTTP autenticado, usando o banco de teste (SQLite em memória)."""
     monkeypatch.setattr(settings, "api_token", TOKEN_TESTE)
     app.dependency_overrides[get_db] = lambda: db_session
     app.dependency_overrides[get_agenda] = lambda: agenda

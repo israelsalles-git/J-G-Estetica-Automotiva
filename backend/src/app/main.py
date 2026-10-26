@@ -1,25 +1,13 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-import app.models  # noqa: F401  (registra os models no Base.metadata)
+import app.models  # noqa: F401  (registra todos os models antes de configurar os relacionamentos)
 from app.api import agendamentos, clientes, health, servicos
 from app.core.config import settings
-from app.core.database import Base, engine
 from app.services.exceptions import ConflitoError, IntegracaoError, NaoEncontradoError
 
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    # Cria as tabelas que ainda não existem. Trocar por migrations (Alembic) quando o schema evoluir.
-    Base.metadata.create_all(bind=engine)
-    yield
-
-
-app = FastAPI(
-    title=settings.app_name, version=settings.app_version, debug=settings.debug, lifespan=lifespan
-)
+# As tabelas são criadas/alteradas pelas migrations (alembic upgrade head), não na subida da API.
+app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.debug)
 
 app.include_router(health.router)
 app.include_router(servicos.router)
