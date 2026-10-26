@@ -84,6 +84,9 @@ python -m venv .venv
 # Instale as dependências (inclui as de teste; em produção use requirements.txt)
 pip install -r requirements-dev.txt
 
+# Crie/atualize as tabelas do banco (rode sempre que puxar migrations novas)
+alembic upgrade head
+
 # Inicie o servidor em modo desenvolvimento
 uvicorn app.main:app --reload --app-dir src
 ```
@@ -105,6 +108,23 @@ Documentação automática: `http://localhost:8000/docs`
 | `DATABASE_URL` | URL de conexão com o PostgreSQL | `postgresql+psycopg://postgres:postgres@localhost:5432/jg_estetica` |
 
 > O `.env` não é versionado. Nunca suba senhas para o repositório — use o `.env.example` como modelo.
+
+#### 🗄️ Migrations (Alembic)
+
+As tabelas são criadas e alteradas **somente por migrations** (pasta `backend/alembic/versions/`); a API não cria tabelas ao subir. O Alembic lê a `DATABASE_URL` do `.env`. Com o ambiente virtual ativo, dentro de `backend/`:
+
+```bash
+alembic upgrade head                                    # aplica as migrations pendentes
+alembic current                                         # mostra a versão atual do banco
+alembic revision --autogenerate -m "descricao da mudanca"  # gera migration após alterar um model
+alembic downgrade -1                                    # desfaz a última migration
+```
+
+Ao alterar um model em `src/app/models/`:
+
+1. Gere a migration com `--autogenerate` e **revise o arquivo gerado** antes de aplicar (o Alembic não detecta tudo, ex.: renomear coluna vira "apagar + criar").
+2. Se a coluna nova for obrigatória e a tabela já tiver dados, crie-a como `nullable=True`, preencha os registros antigos e só então aplique o `NOT NULL`.
+3. Rode `alembic upgrade head` e suba o arquivo da migration junto com a alteração do model.
 
 #### 🧪 Testes
 
@@ -155,6 +175,8 @@ flutter run
 │ │ ├── schemas/ # Schemas Pydantic
 │ │ ├── repositories/ # Integração com o banco
 │ │ └── services/ # Regras de negócio
+│ ├── alembic/ # Migrations do banco (versions/)
+│ ├── alembic.ini # Configuração do Alembic
 │ ├── .env.example # Modelo das variáveis de ambiente
 │ ├── pyproject.toml # Metadados do projeto
 │ ├── tests/ # Testes automatizados (pytest)
