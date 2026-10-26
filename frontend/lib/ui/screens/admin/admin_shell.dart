@@ -72,7 +72,7 @@ class _AdminShellState extends State<AdminShell> {
       bottomNavigationBar: mobile
           ? NavigationBar(
               backgroundColor: AppColors.nav,
-              indicatorColor: AppColors.blue.withValues(alpha: 0.4),
+              indicatorColor: AppColors.red.withValues(alpha: 0.4),
               selectedIndex: _index,
               onDestinationSelected: _select,
               destinations: [
@@ -165,7 +165,7 @@ class _Sidebar extends StatelessWidget {
                             fontSize: 10,
                             letterSpacing: 1.5,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.cyan,
+                            color: AppColors.red,
                           ),
                         ),
                       ],
@@ -210,7 +210,7 @@ class _SidebarItem extends StatelessWidget {
 
     final tile = AdminTapSurface(
       onTap: onTap,
-      color: selected ? AppColors.blue : Colors.transparent,
+      color: selected ? AppColors.redGlow : Colors.transparent,
       borderColor: Colors.transparent,
       radius: 14,
       padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 16, vertical: 14),
@@ -269,7 +269,7 @@ class _TopBar extends StatelessWidget {
                         fontSize: 11,
                         letterSpacing: 1.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.cyan,
+                        color: AppColors.red,
                       ),
                     ),
                     TextSpan(
@@ -312,7 +312,7 @@ class _TopBar extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: AppColors.cyan,
+                color: AppColors.red,
               ),
             ),
           ),

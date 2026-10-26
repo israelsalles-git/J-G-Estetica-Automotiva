@@ -245,7 +245,7 @@ class _ModalityToggle extends StatelessWidget {
             Expanded(
               child: AdminTapSurface(
                 onTap: () => onChanged(option),
-                color: option == value ? AppColors.blue : Colors.transparent,
+                color: option == value ? AppColors.red : Colors.transparent,
                 borderColor: Colors.transparent,
                 radius: 9,
                 child: Center(
@@ -279,13 +279,13 @@ class _DropZone extends StatelessWidget {
       child: AdminTapSurface(
         onTap: onTap,
         color: AppColors.bgAlt,
-        borderColor: AppColors.cyan.withValues(alpha: 0.35),
+        borderColor: AppColors.red.withValues(alpha: 0.35),
         radius: 16,
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
         child: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_upload_outlined, size: 36, color: AppColors.cyan),
+            Icon(Icons.cloud_upload_outlined, size: 36, color: AppColors.red),
             SizedBox(height: 10),
             Text(
               'Clique para selecionar foto ou arraste arquivos aqui',
@@ -315,7 +315,7 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: filled ? AppColors.blue : Colors.black54,
+        color: filled ? AppColors.red : Colors.black54,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -324,7 +324,7 @@ class _Badge extends StatelessWidget {
           fontSize: 9,
           letterSpacing: 0.8,
           fontWeight: FontWeight.w700,
-          color: filled ? Colors.white : AppColors.cyan,
+          color: filled ? Colors.white : AppColors.red,
         ),
       ),
     );
@@ -345,8 +345,8 @@ class _PhotoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCar = photo.modality == 'CARRO';
-    final tint = isCar ? AppColors.blue : AppColors.cyan;
-    final statusColor = photo.active ? AppColors.cyan : AppColors.muted;
+    final tint = isCar ? AppColors.red : AppColors.red;
+    final statusColor = photo.active ? AppColors.red : AppColors.muted;
 
     return Container(
       width: 176,
@@ -438,7 +438,7 @@ class _PhotoCard extends StatelessWidget {
                         photo.featured ? Icons.star : Icons.star_border,
                         size: 20,
                         color:
-                            photo.featured ? AppColors.cyan : AppColors.muted,
+                            photo.featured ? AppColors.red : AppColors.muted,
                       ),
                     ),
                   ],

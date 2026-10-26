@@ -224,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: _busy ? null : _forgotPassword,
                   child: const Text(
                     'Esqueci minha senha',
-                    style: TextStyle(color: AppColors.cyan, fontSize: 12),
+                    style: TextStyle(color: AppColors.red, fontSize: 12),
                   ),
                 ),
               ),
@@ -270,7 +270,7 @@ InputDecoration _decoration({
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     border: outline(AppColors.border),
     enabledBorder: outline(AppColors.border),
-    focusedBorder: outline(AppColors.cyan),
+    focusedBorder: outline(AppColors.red),
   );
 }
 
@@ -286,12 +286,12 @@ class _Logo extends StatelessWidget {
         shape: BoxShape.circle,
         color: AppColors.card,
         border: Border.all(
-          color: AppColors.cyan.withValues(alpha: 0.5),
+          color: AppColors.red.withValues(alpha: 0.5),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.blue.withValues(alpha: 0.5),
+            color: AppColors.redGlow.withValues(alpha: 0.5),
             blurRadius: 40,
           ),
         ],
@@ -302,7 +302,7 @@ class _Logo extends StatelessWidget {
           style: TextStyle(
             fontSize: 30,
             fontWeight: FontWeight.w900,
-            color: AppColors.cyan,
+            color: AppColors.red,
           ),
         ),
       ),
@@ -386,7 +386,7 @@ class _PrimaryButton extends StatelessWidget {
           borderRadius: radius,
           boxShadow: [
             BoxShadow(
-              color: AppColors.blue.withValues(alpha: 0.4),
+              color: AppColors.redGlow.withValues(alpha: 0.4),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -473,7 +473,7 @@ class _GoogleButton extends StatelessWidget {
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  color: AppColors.cyan,
+                  color: AppColors.red,
                 ),
               )
             : const Row(

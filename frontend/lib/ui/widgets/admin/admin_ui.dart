@@ -70,7 +70,7 @@ class AdminPill extends StatelessWidget {
   const AdminPill({
     super.key,
     required this.label,
-    this.color = AppColors.cyan,
+    this.color = AppColors.red,
   });
 
   final String label;
@@ -145,7 +145,7 @@ class AdminPanelHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.border),
           ),
-          child: Icon(icon, color: AppColors.cyan, size: 22),
+          child: Icon(icon, color: AppColors.red, size: 22),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -262,6 +262,6 @@ InputDecoration adminInputDecoration({String? hint, IconData? icon}) {
     fillColor: AppColors.card2,
     border: outline(AppColors.border),
     enabledBorder: outline(AppColors.border),
-    focusedBorder: outline(AppColors.cyan),
+    focusedBorder: outline(AppColors.red),
   );
 }

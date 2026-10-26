@@ -233,7 +233,7 @@ class _ServiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = item.active ? AppColors.cyan : AppColors.muted;
+    final statusColor = item.active ? AppColors.red : AppColors.muted;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
