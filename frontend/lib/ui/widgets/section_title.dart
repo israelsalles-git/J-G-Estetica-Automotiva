@@ -22,7 +22,7 @@ class SectionTitle extends StatelessWidget {
       children: [
         Text(tag,
             style: const TextStyle(
-                color: AppColors.cyan,
+                color: AppColors.red,
                 fontSize: 11,
                 letterSpacing: 2,
                 fontWeight: FontWeight.w600)),

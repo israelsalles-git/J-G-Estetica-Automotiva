@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import 'app_container.dart';
+import 'brand_logo.dart';
 import 'gradient_button.dart';
 
 class Navbar extends StatelessWidget {
@@ -20,74 +21,61 @@ class Navbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final mobile = Responsive.isMobile(context);
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.nav,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: AppContainer(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const _Logo(),
-            if (mobile)
-              PopupMenuButton<VoidCallback>(
-                icon: const Icon(Icons.menu),
-                color: AppColors.card,
-                onSelected: (cb) => cb(),
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                      value: onServices, child: const Text('Serviços & Catálogo')),
-                  PopupMenuItem(
-                      value: onBooking, child: const Text('Agendamento')),
-                  PopupMenuItem(
-                      value: onWorks, child: const Text('Últimos Trabalhos')),
-                ],
-              )
-            else
-              Row(children: [
-                _NavLink('Serviços & Catálogo', onServices),
-                _NavLink('Agendamento', onBooking),
-                _NavLink('Últimos Trabalhos', onWorks),
-                const SizedBox(width: 12),
-                GradientButton(label: 'Agendar Agora', onTap: onBooking, small: true),
-              ]),
-          ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          color: AppColors.nav,
+          padding: EdgeInsets.symmetric(vertical: mobile ? 10 : 12),
+          child: AppContainer(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                BrandLogo(height: mobile ? 38 : 52),
+                if (mobile)
+                  PopupMenuButton<VoidCallback>(
+                    icon: const Icon(Icons.menu),
+                    color: AppColors.card,
+                    onSelected: (cb) => cb(),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                          value: onServices,
+                          child: const Text('Serviços & Catálogo')),
+                      PopupMenuItem(
+                          value: onBooking, child: const Text('Agendamento')),
+                      PopupMenuItem(
+                          value: onWorks,
+                          child: const Text('Últimos Trabalhos')),
+                    ],
+                  )
+                else
+                  Row(children: [
+                    _NavLink('Serviços & Catálogo', onServices),
+                    _NavLink('Agendamento', onBooking),
+                    _NavLink('Últimos Trabalhos', onWorks),
+                    const SizedBox(width: 12),
+                    GradientButton(
+                        label: 'Agendar Agora', onTap: onBooking, small: true),
+                  ]),
+              ],
+            ),
+          ),
         ),
-      ),
+        // Linha de luz vermelha sob o menu.
+        Container(
+          height: 2,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(colors: [
+              Colors.transparent,
+              AppColors.redDark,
+              AppColors.red,
+              AppColors.redDark,
+              Colors.transparent,
+            ]),
+          ),
+        ),
+      ],
     );
-  }
-}
-
-class _Logo extends StatelessWidget {
-  const _Logo();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: const Icon(Icons.directions_car, color: AppColors.cyan, size: 18),
-      ),
-      const SizedBox(width: 10),
-      const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('J&G ESTÉTICA',
-              style: TextStyle(
-                  fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.cyan)),
-          Text('CARROS & MOTOS',
-              style: TextStyle(
-                  fontSize: 9, color: AppColors.muted, letterSpacing: 1.5)),
-        ],
-      ),
-    ]);
   }
 }
 
@@ -103,7 +91,7 @@ class _NavLink extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Text(text,
-            style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+            style: const TextStyle(color: Colors.white, fontSize: 13)),
       ),
     );
   }

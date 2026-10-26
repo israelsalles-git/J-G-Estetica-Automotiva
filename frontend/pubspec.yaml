@@ -1,21 +1,24 @@
 name: frontend
-description: "A new Flutter project."
+description: Interface Flutter da Tal da Estética Automotiva.
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
-  sdk: ^3.12.2
+  sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  provider: ^6.1.5+1
-  url_launcher: ^6.3.3
+  provider: ^6.1.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assents/ClientPageImages/Logo.png
+    - assents/ClientPageImages/teste.jpeg
+    - assets/trabalhos/

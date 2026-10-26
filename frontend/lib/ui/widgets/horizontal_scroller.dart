@@ -8,18 +8,25 @@ import 'app_container.dart';
 
 /// Fileira com rolagem horizontal: arrasta com mouse/dedo, scroll lateral
 /// do trackpad e setas (setas só no desktop/tablet).
+///
+/// Cada item recebe EXATAMENTE [itemWidth] de largura e a altura útil da
+/// fileira ([height] menos [verticalPadding] em cima e embaixo).
+/// Use [verticalPadding] para dar folga a sombras/brilhos que, sem isso,
+/// seriam cortados pela área de rolagem.
 class HorizontalScroller extends StatefulWidget {
   final List<Widget> children;
   final double height;
   final double itemWidth;
   final double gap;
+  final double verticalPadding;
 
   const HorizontalScroller({
     super.key,
     required this.children,
     required this.height,
     required this.itemWidth,
-    this.gap = 16,
+    this.gap = 20,
+    this.verticalPadding = 0,
   });
 
   @override
@@ -47,8 +54,16 @@ class _HorizontalScrollerState extends State<HorizontalScroller> {
   Widget build(BuildContext context) {
     final mobile = Responsive.isMobile(context);
     final w = Responsive.width(context);
-    final sidePad =
-        mobile ? 20.0 : math.max(32.0, (w - Responsive.maxContent) / 2 + 32);
+    final minSide = mobile ? 20.0 : 32.0;
+    final count = widget.children.length;
+    final total = count * widget.itemWidth + math.max(0, count - 1) * widget.gap;
+
+    // Cabe tudo na tela? Então centraliza a fileira (e some com as setas).
+    // Senão, começa alinhada ao conteúdo da página e o resto rola para o lado.
+    final fits = total + 2 * minSide <= w;
+    final sidePad = fits
+        ? (w - total) / 2
+        : (mobile ? 20.0 : math.max(32.0, (w - Responsive.maxContent) / 2 + 32));
     final step = (widget.itemWidth + widget.gap) * 2;
 
     return Column(
@@ -67,7 +82,8 @@ class _HorizontalScrollerState extends State<HorizontalScroller> {
             child: ListView.separated(
               controller: _controller,
               scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: sidePad),
+              padding: EdgeInsets.symmetric(
+                  horizontal: sidePad, vertical: widget.verticalPadding),
               itemCount: widget.children.length,
               separatorBuilder: (_, __) => SizedBox(width: widget.gap),
               itemBuilder: (_, i) =>
@@ -75,8 +91,8 @@ class _HorizontalScrollerState extends State<HorizontalScroller> {
             ),
           ),
         ),
-        if (!mobile) ...[
-          const SizedBox(height: 16),
+        if (!mobile && !fits) ...[
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -109,7 +125,7 @@ class _Arrow extends StatelessWidget {
           color: AppColors.card,
           border: Border.all(color: AppColors.border),
         ),
-        child: Icon(icon, color: AppColors.cyan),
+        child: Icon(icon, color: AppColors.red),
       ),
     );
   }

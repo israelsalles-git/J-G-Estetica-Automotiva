@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:frontend/services/whatsapp_service.dart';
 import 'package:frontend/ui/theme/app_theme.dart';
 import 'package:frontend/ui/widgets/booking_section.dart';
 import 'package:frontend/ui/widgets/footer_section.dart';
@@ -10,7 +9,11 @@ import 'package:frontend/ui/widgets/services_section.dart';
 import 'package:frontend/ui/widgets/works_section.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  /// Toque no botão flutuante de contato. Não há ação padrão: o que acontece
+  /// (abrir WhatsApp, telefone, chat…) é definido por quem conectar o backend.
+  final VoidCallback? onContactPressed;
+
+  const HomePage({super.key, this.onContactPressed});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -40,7 +43,9 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.whatsapp,
-        onPressed: () => WhatsappService.open(),
+        onPressed: widget.onContactPressed ??
+            () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Contato ainda não conectado ao backend.'))),
         child: const Icon(Icons.chat, color: Colors.white),
       ),
       body: SingleChildScrollView(

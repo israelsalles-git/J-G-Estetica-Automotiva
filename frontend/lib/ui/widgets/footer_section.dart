@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import 'app_container.dart';
+import 'brand_logo.dart';
 
 class FooterSection extends StatelessWidget {
   final VoidCallback onServices;
@@ -20,9 +21,8 @@ class FooterSection extends StatelessWidget {
     final mobile = Responsive.isMobile(context);
 
     const about = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('J&G Estética Automotiva',
-          style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.cyan)),
-      SizedBox(height: 8),
+      BrandLogo(height: 56),
+      SizedBox(height: 10),
       Text('Especialistas em carros & motos.\nQualidade e brilho em cada detalhe.',
           style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5)),
     ]);
@@ -54,13 +54,16 @@ class FooterSection extends StatelessWidget {
                   hours,
                 ])
               : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Expanded(flex: 2, child: about),
-                  Expanded(child: links),
-                  const Expanded(child: hours),
+                  const Expanded(
+                      child: Align(alignment: Alignment.topLeft, child: about)),
+                  Expanded(
+                      child: Align(alignment: Alignment.topCenter, child: links)),
+                  const Expanded(
+                      child: Align(alignment: Alignment.topRight, child: hours)),
                 ]),
           const Divider(color: AppColors.border, height: 40),
           const Text(
-            '© 2026 J&G Estética Automotiva. Todos os direitos reservados.',
+            '© 2026 Tal da Estética Automotiva. Todos os direitos reservados.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.muted, fontSize: 11),
           ),

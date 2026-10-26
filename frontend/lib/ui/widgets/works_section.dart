@@ -1,29 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../../services/works_service.dart';
-import '../theme/app_theme.dart';
+import '../../core/load_status.dart';
+import '../../providers/works_provider.dart';
 import 'app_container.dart';
 import 'horizontal_scroller.dart';
 import 'section_title.dart';
+import 'state_views.dart';
+import 'work_card.dart';
 
-class WorksSection extends StatefulWidget {
+/// Galeria "Últimos Trabalhos". Os trabalhos vêm do `WorksProvider`: quando um
+/// trabalho novo existir na fonte de dados (pasta de assets hoje, API amanhã),
+/// ele aparece aqui sem nenhuma mudança no layout.
+class WorksSection extends StatelessWidget {
   const WorksSection({super.key});
-
-  @override
-  State<WorksSection> createState() => _WorksSectionState();
-}
-
-class _WorksSectionState extends State<WorksSection> {
-  late final Future<List<String>> _photos = WorksService.loadPhotos();
 
   @override
   Widget build(BuildContext context) {
     final mobile = Responsive.isMobile(context);
-    final itemWidth = mobile ? 260.0 : 340.0;
-    final height = mobile ? 200.0 : 260.0;
+    final works = context.watch<WorksProvider>();
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: mobile ? 40 : 70),
+      padding: EdgeInsets.fromLTRB(0, mobile ? 40 : 70, 0, mobile ? 48 : 80),
       child: Column(children: [
         const AppContainer(
           child: SectionTitle(
@@ -33,112 +31,50 @@ class _WorksSectionState extends State<WorksSection> {
           ),
         ),
         const SizedBox(height: 32),
-        FutureBuilder<List<String>>(
-          future: _photos,
-          builder: (context, snap) {
-            final photos = snap.data ?? const <String>[];
-            final empty = snap.connectionState == ConnectionState.done &&
-                photos.isEmpty;
-
-            if (snap.connectionState != ConnectionState.done) {
-              return SizedBox(height: height);
-            }
-
-            return HorizontalScroller(
-              height: height,
-              itemWidth: itemWidth,
-              children: empty
-                  ? List.generate(4, (_) => const _PlaceholderTile())
-                  : [for (final p in photos) _PhotoTile(path: p)],
-            );
-          },
-        ),
+        _content(context, works, mobile),
       ]),
     );
   }
-}
 
-class _PhotoTile extends StatelessWidget {
-  final String path;
-  const _PhotoTile({required this.path});
+  Widget _content(BuildContext context, WorksProvider works, bool mobile) {
+    final itemWidth = mobile ? 260.0 : 340.0;
 
-  void _open(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.black,
-        insetPadding: const EdgeInsets.all(16),
-        child: Stack(children: [
-          InteractiveViewer(
-            child: Image.asset(path, fit: BoxFit.contain),
+    switch (works.status) {
+      case LoadStatus.idle:
+      case LoadStatus.loading:
+        return LoadingView(
+            height: WorkCard.heightFor(itemWidth, showCaption: false));
+      case LoadStatus.error:
+        return AppContainer(
+          child: ErrorView(
+            message: works.error ?? 'Não foi possível carregar os trabalhos.',
+            onRetry: works.load,
           ),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => Navigator.pop(ctx),
+        );
+      case LoadStatus.success:
+        if (works.works.isEmpty) {
+          return const AppContainer(
+            child: EmptyView(
+              icon: Icons.photo_library_outlined,
+              title: 'Em breve por aqui',
+              message:
+                  'Estamos preparando a galeria com os nossos últimos trabalhos. Volte em breve!',
             ),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () => _open(context),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Image.asset(
-            path,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
-              color: AppColors.card2,
-              child: const Icon(Icons.broken_image_outlined,
-                  color: AppColors.muted, size: 40),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Mostrado enquanto a pasta `assets/trabalhos/` está vazia.
-class _PlaceholderTile extends StatelessWidget {
-  const _PlaceholderTile();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: const Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.add_photo_alternate_outlined,
-              color: AppColors.cyan, size: 40),
-          SizedBox(height: 10),
-          Text('Adicione fotos em',
-              style: TextStyle(color: AppColors.muted, fontSize: 12)),
-          Text('assets/trabalhos/',
-              style: TextStyle(
-                  color: AppColors.cyan,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
+          );
+        }
+        final showCaption = works.works.any((w) => w.hasDetails);
+        return HorizontalScroller(
+          height: WorkCard.heightFor(itemWidth, showCaption: showCaption),
+          itemWidth: itemWidth,
+          children: [
+            for (final w in works.works)
+              WorkCard(
+                key: ValueKey('work_${w.id}'),
+                work: w,
+                showCaption: showCaption,
+              ),
+          ],
+        );
+    }
   }
 }
