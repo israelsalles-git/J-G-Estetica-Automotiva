@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     # Token exigido nas rotas protegidas (Authorization: Bearer <token>). Vazio = bloqueia tudo.
     api_token: str = ""
 
+    # CORS: origens (sites) que podem chamar a API pelo navegador. Vazio = nenhuma.
+    # cors_origins: endereços exatos, em JSON no .env (ex.: ["https://site.com.br"]).
+    # cors_origin_regex: padrão para várias origens (ex.: http://localhost:\d+ no desenvolvimento).
+    cors_origins: list[str] = []
+    cors_origin_regex: str | None = None
+
     # Fuso usado nos agendamentos: datas sem fuso são interpretadas nele.
     timezone: str = "America/Sao_Paulo"
 
@@ -62,6 +68,12 @@ class Settings(BaseSettings):
         if "supabase.com" in host_e_resto and "sslmode=" not in url:
             url += ("&" if "?" in url else "?") + "sslmode=require"
         return url
+
+    @field_validator("cors_origins")
+    @classmethod
+    def normalizar_cors_origins(cls, origens: list[str]) -> list[str]:
+        """O navegador envia a origem sem "/" no final; "https://site.com.br/" nunca bateria."""
+        return [origem.strip().rstrip("/") for origem in origens if origem.strip()]
 
 
 @lru_cache

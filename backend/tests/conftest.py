@@ -1,14 +1,21 @@
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-import app.models  # noqa: F401  (registra os models no Base.metadata)
-from app.core.config import settings
-from app.core.database import Base, get_db
-from app.integrations.google_agenda import get_agenda
-from app.main import app
+# CORS fixo nos testes, para não depender do .env de cada pessoa. Precisa vir antes de importar
+# o app: o CORS é lido uma única vez, quando o app é criado (variável de ambiente vence o .env).
+os.environ["CORS_ORIGIN_REGEX"] = r"http://localhost:\d+"
+os.environ["CORS_ORIGINS"] = '["https://site-teste.com.br"]'
+
+import app.models  # noqa: E402, F401  (registra os models no Base.metadata)
+from app.core.config import settings  # noqa: E402
+from app.core.database import Base, get_db  # noqa: E402
+from app.integrations.google_agenda import get_agenda  # noqa: E402
+from app.main import app  # noqa: E402
 
 TOKEN_TESTE = "token-de-teste"
 

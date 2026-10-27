@@ -106,6 +106,10 @@ Documentação automática: `http://localhost:8000/docs`
 | `ENVIRONMENT` | Ambiente (`development`, `production`...) | `development` |
 | `DEBUG` | Ativa o modo debug | `false` |
 | `DATABASE_URL` | URL de conexão com o PostgreSQL | `postgresql+psycopg://postgres:postgres@localhost:5432/jg_estetica` |
+| `CORS_ORIGIN_REGEX` | Padrão (regex) de origens liberadas para chamar a API pelo navegador. Em desenvolvimento: `http://localhost:\d+` | vazio (nenhuma) |
+| `CORS_ORIGINS` | Origens exatas liberadas, em JSON e sem `/` no final. Ex.: `["https://seusite.com.br"]` | `[]` (nenhuma) |
+
+> **CORS:** o site Flutter Web roda em outra origem (porta/domínio) que a API, então o navegador só deixa o site chamar a API se a origem estiver liberada em `CORS_ORIGIN_REGEX` ou `CORS_ORIGINS`. Não deixe `CORS_ORIGINS=` vazio no `.env` (a API não sobe): use `[]` ou apague a linha.
 
 > O `.env` não é versionado. Nunca suba senhas para o repositório — use o `.env.example` como modelo.
 

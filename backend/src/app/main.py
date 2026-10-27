@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 import app.models  # noqa: F401  (registra todos os models antes de configurar os relacionamentos)
@@ -8,6 +9,16 @@ from app.services.exceptions import ConflitoError, IntegracaoError, NaoEncontrad
 
 # As tabelas são criadas/alteradas pelas migrations (alembic upgrade head), não na subida da API.
 app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.debug)
+
+# Libera o site (Flutter Web, outra origem) a chamar a API pelo navegador.
+# Sem allow_credentials: a autenticação é pelo header Authorization, não por cookie.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_origin_regex=settings.cors_origin_regex,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(health.router)
 app.include_router(servicos.router)
