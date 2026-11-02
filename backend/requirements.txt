@@ -16,11 +16,17 @@ anyio==4.15.1
     #   httpx
     #   starlette
     #   watchfiles
+argon2-cffi==25.1.0
+    # via pwdlib
+argon2-cffi-bindings==26.1.0
+    # via argon2-cffi
 certifi==2026.7.22
     # via
     #   httpcore
     #   httpx
     #   sentry-sdk
+cffi==2.1.1
+    # via argon2-cffi-bindings
 click==8.5.0
     # via
     #   rich-toolkit
@@ -78,6 +84,10 @@ psycopg[binary]==3.3.6
     # via jg-estetica-backend
 psycopg-binary==3.3.6 ; implementation_name != 'pypy'
     # via psycopg
+pwdlib[argon2]==0.3.1
+    # via jg-estetica-backend
+pycparser==3.12 ; implementation_name != 'pypy'
+    # via cffi
 pydantic==2.13.5
     # via
     #   fastapi
@@ -94,6 +104,8 @@ pydantic-settings==2.15.0
     #   jg-estetica-backend
 pygments==2.21.0
     # via rich
+pyjwt==2.15.1
+    # via jg-estetica-backend
 python-dotenv==1.2.3
     # via
     #   pydantic-settings

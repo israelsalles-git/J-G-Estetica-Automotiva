@@ -24,8 +24,9 @@ class Settings(BaseSettings):
     # Pode colar a string do Supabase (Connect > Session pooler) como vem; ela é ajustada abaixo.
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/jg_estetica"
 
-    # Token exigido nas rotas protegidas (Authorization: Bearer <token>). Vazio = bloqueia tudo.
-    api_token: str = ""
+    # JWT do login (Authorization: Bearer <token>). Segredo vazio = bloqueia login e rotas protegidas.
+    jwt_secret: str = ""
+    jwt_expira_min: int = 480
 
     # CORS: origens (sites) que podem chamar a API pelo navegador. Vazio = nenhuma.
     # cors_origins: endereços exatos, em JSON no .env (ex.: ["https://site.com.br"]).

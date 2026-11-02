@@ -14,10 +14,16 @@ os.environ["CORS_ORIGINS"] = '["https://site-teste.com.br"]'
 import app.models  # noqa: E402, F401  (registra os models no Base.metadata)
 from app.core.config import settings  # noqa: E402
 from app.core.database import Base, get_db  # noqa: E402
+from app.core.security import criar_token, gerar_hash_senha  # noqa: E402
 from app.integrations.google_agenda import get_agenda  # noqa: E402
 from app.main import app  # noqa: E402
+from app.models.usuarios import Usuario  # noqa: E402
 
-TOKEN_TESTE = "token-de-teste"
+JWT_SECRET_TESTE = "segredo-de-teste-com-pelo-menos-32-bytes"
+EMAIL_TESTE = "admin@teste.com"
+SENHA_TESTE = "senha-de-teste-123"
+# O argon2 é lento de propósito: gera o hash uma vez só, e não a cada teste.
+SENHA_HASH_TESTE = gerar_hash_senha(SENHA_TESTE)
 
 
 @pytest.fixture
@@ -67,19 +73,28 @@ def agenda():
 
 
 @pytest.fixture
-def client(db_session, agenda, monkeypatch):
-    """Cliente HTTP autenticado, usando o banco de teste (SQLite em memória)."""
-    monkeypatch.setattr(settings, "api_token", TOKEN_TESTE)
+def usuario(db_session):
+    """Usuário ativo do painel, com e-mail EMAIL_TESTE e senha SENHA_TESTE."""
+    usuario = Usuario(nome="Admin Teste", email=EMAIL_TESTE, senha_hash=SENHA_HASH_TESTE)
+    db_session.add(usuario)
+    db_session.commit()
+    return usuario
+
+
+@pytest.fixture
+def client(db_session, agenda, usuario, monkeypatch):
+    """Cliente HTTP autenticado (JWT do `usuario`), usando o banco de teste (SQLite em memória)."""
+    monkeypatch.setattr(settings, "jwt_secret", JWT_SECRET_TESTE)
     app.dependency_overrides[get_db] = lambda: db_session
     app.dependency_overrides[get_agenda] = lambda: agenda
-    yield TestClient(app, headers={"Authorization": f"Bearer {TOKEN_TESTE}"})
+    yield TestClient(app, headers={"Authorization": f"Bearer {criar_token(usuario.id)}"})
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
 def client_sem_token(db_session, agenda, monkeypatch):
     """Cliente HTTP sem header de autenticação."""
-    monkeypatch.setattr(settings, "api_token", TOKEN_TESTE)
+    monkeypatch.setattr(settings, "jwt_secret", JWT_SECRET_TESTE)
     app.dependency_overrides[get_db] = lambda: db_session
     app.dependency_overrides[get_agenda] = lambda: agenda
     yield TestClient(app)

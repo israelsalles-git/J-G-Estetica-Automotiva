@@ -2,5 +2,6 @@
 from app.models.agendamentos import Agendamento
 from app.models.clientes import Cliente
 from app.models.servicos import Servico
+from app.models.usuarios import Usuario
 
-__all__ = ["Agendamento", "Cliente", "Servico"]
+__all__ = ["Agendamento", "Cliente", "Servico", "Usuario"]

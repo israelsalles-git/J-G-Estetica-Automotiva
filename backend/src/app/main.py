@@ -3,9 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 import app.models  # noqa: F401  (registra todos os models antes de configurar os relacionamentos)
-from app.api import agendamentos, clientes, health, servicos
+from app.api import agendamentos, auth, clientes, health, servicos
 from app.core.config import settings
-from app.services.exceptions import ConflitoError, IntegracaoError, NaoEncontradoError
+from app.services.exceptions import (
+    ConflitoError,
+    CredenciaisInvalidasError,
+    IntegracaoError,
+    NaoEncontradoError,
+)
 
 # As tabelas são criadas/alteradas pelas migrations (alembic upgrade head), não na subida da API.
 app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.debug)
@@ -21,6 +26,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(servicos.router)
 app.include_router(clientes.router)
 app.include_router(agendamentos.router)
@@ -35,6 +41,15 @@ async def nao_encontrado_handler(_: Request, exc: NaoEncontradoError):
 @app.exception_handler(ConflitoError)
 async def conflito_handler(_: Request, exc: ConflitoError):
     return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
+
+
+@app.exception_handler(CredenciaisInvalidasError)
+async def credenciais_invalidas_handler(_: Request, exc: CredenciaisInvalidasError):
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": str(exc)},
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 @app.exception_handler(IntegracaoError)

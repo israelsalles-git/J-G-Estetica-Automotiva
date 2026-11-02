@@ -87,6 +87,11 @@ pip install -r requirements-dev.txt
 # Crie/atualize as tabelas do banco (rode sempre que puxar migrations novas)
 alembic upgrade head
 
+# Só na primeira vez em um banco novo: cadastre o usuário admin (veja "Autenticação")
+cd src
+python -m app.scripts.criar_admin
+cd ..
+
 # Inicie o servidor em modo desenvolvimento
 uvicorn app.main:app --reload --app-dir src
 ```
@@ -106,12 +111,38 @@ Documentação automática: `http://localhost:8000/docs`
 | `ENVIRONMENT` | Ambiente (`development`, `production`...) | `development` |
 | `DEBUG` | Ativa o modo debug | `false` |
 | `DATABASE_URL` | URL de conexão com o PostgreSQL | `postgresql+psycopg://postgres:postgres@localhost:5432/jg_estetica` |
+| `JWT_SECRET` | Segredo que assina os tokens de login. **Obrigatório**: vazio, ninguém consegue logar | vazio |
+| `JWT_EXPIRA_MIN` | Validade do token de login, em minutos | `480` (8 horas) |
 | `CORS_ORIGIN_REGEX` | Padrão (regex) de origens liberadas para chamar a API pelo navegador. Em desenvolvimento: `http://localhost:\d+` | vazio (nenhuma) |
 | `CORS_ORIGINS` | Origens exatas liberadas, em JSON e sem `/` no final. Ex.: `["https://seusite.com.br"]` | `[]` (nenhuma) |
 
 > **CORS:** o site Flutter Web roda em outra origem (porta/domínio) que a API, então o navegador só deixa o site chamar a API se a origem estiver liberada em `CORS_ORIGIN_REGEX` ou `CORS_ORIGINS`. Não deixe `CORS_ORIGINS=` vazio no `.env` (a API não sobe): use `[]` ou apague a linha.
 
 > O `.env` não é versionado. Nunca suba senhas para o repositório — use o `.env.example` como modelo.
+
+#### 🔐 Autenticação (login do painel)
+
+As rotas de escrita e as de dados pessoais (clientes, agendamentos) exigem login. O fluxo é:
+
+1. `POST /auth/login` com `{"email": "...", "senha": "..."}` devolve `{"access_token": "...", "token_type": "bearer", "usuario": {"id", "nome", "email"}}`.
+2. As próximas requisições enviam o header `Authorization: Bearer <access_token>`.
+3. `GET /auth/me` devolve o usuário dono do token.
+
+E-mail ou senha errados, e usuário inativo, retornam `401` com a mesma mensagem genérica. Token ausente, inválido ou expirado também retorna `401`, e aí o front deve mandar o usuário logar de novo.
+
+**Gerar o `JWT_SECRET`** (cada ambiente com o seu; trocar o segredo desloga todo mundo):
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+**Cadastrar usuários:** não há cadastro público pela API. O admin é criado por um script, que pede nome, e-mail e senha (mínimo 8 caracteres; a senha não aparece na tela e é salva só como hash argon2). Rode a partir de `backend/src`, com a migration aplicada:
+
+```bash
+python -m app.scripts.criar_admin
+```
+
+> No Swagger (`/docs`), faça o login em `POST /auth/login`, copie o `access_token` e cole em **Authorize** para testar as rotas protegidas.
 
 #### 🗄️ Migrations (Alembic)
 
@@ -174,11 +205,12 @@ flutter run
 │ ├── src/app/
 │ │ ├── main.py # Entrypoint da API
 │ │ ├── api/ # Rotas da API (ex.: health.py)
-│ │ ├── core/ # Configurações (config.py lê o .env)
+│ │ ├── core/ # Configurações (config.py lê o .env) e autenticação (security.py)
 │ │ ├── models/ # Modelos do banco de dados
 │ │ ├── schemas/ # Schemas Pydantic
 │ │ ├── repositories/ # Integração com o banco
-│ │ └── services/ # Regras de negócio
+│ │ ├── services/ # Regras de negócio
+│ │ └── scripts/ # Scripts de linha de comando (ex.: criar_admin.py)
 │ ├── alembic/ # Migrations do banco (versions/)
 │ ├── alembic.ini # Configuração do Alembic
 │ ├── .env.example # Modelo das variáveis de ambiente

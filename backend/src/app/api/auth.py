@@ -1,0 +1,23 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.core.security import require_auth
+from app.models.usuarios import Usuario
+from app.schemas.auth import LoginRequest, TokenResponse, UsuarioRead
+from app.services import auth as auth_service
+
+#Não há cadastro público: o primeiro admin é criado pelo script app.scripts.criar_admin
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post("/login", response_model=TokenResponse)
+def login(dados: LoginRequest, db: Session = Depends(get_db)):
+    """Troca e-mail e senha por um token de acesso (JWT)"""
+    return auth_service.login(db, dados)
+
+
+@router.get("/me", response_model=UsuarioRead)
+def usuario_logado(usuario: Usuario = Depends(require_auth)):
+    """Retorna o usuário dono do token"""
+    return usuario
