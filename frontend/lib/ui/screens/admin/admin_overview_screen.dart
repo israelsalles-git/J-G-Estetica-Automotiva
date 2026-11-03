@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/ui/screens/cliente/home_page.dart';
+import 'package:frontend/ui/screens/admin/panels/day_agenda_panel.dart';
 import 'package:frontend/ui/screens/admin/panels/photos_panel.dart';
 import 'package:frontend/ui/screens/admin/panels/prices_panel.dart';
 import 'package:frontend/ui/screens/admin/panels/schedule_panel.dart';
@@ -6,7 +8,8 @@ import 'package:frontend/ui/theme/app_theme.dart';
 import 'package:frontend/ui/widgets/admin/admin_ui.dart';
 import 'package:frontend/ui/widgets/gradient_button.dart';
 
-/// Página única do painel: resumo do dia + fotos, horários e tabela de preços.
+/// Página única do painel: resumo do dia, agenda do dia, liberação de
+/// horários, fotos e tabela de preços.
 /// O menu lateral (AdminShell) rola até cada bloco usando as chaves abaixo,
 /// do mesmo jeito que a navbar do site do cliente.
 class AdminOverviewScreen extends StatelessWidget {
@@ -30,10 +33,25 @@ class AdminOverviewScreen extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final twoColumns = constraints.maxWidth >= 1000;
-          final photos =
-              KeyedSubtree(key: photosKey, child: const PhotosPanel());
-          final schedule =
-              KeyedSubtree(key: scheduleKey, child: const SchedulePanel());
+
+          // Agenda do dia (PNL-5) ao lado da liberação de horários.
+          final agenda = twoColumns
+              ? const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 6, child: DayAgendaPanel()),
+                    SizedBox(width: 24),
+                    Expanded(flex: 5, child: SchedulePanel()),
+                  ],
+                )
+              : const Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DayAgendaPanel(),
+                    SizedBox(height: 24),
+                    SchedulePanel(),
+                  ],
+                );
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -43,20 +61,9 @@ class AdminOverviewScreen extends StatelessWidget {
                 child: _HeroCard(wide: constraints.maxWidth >= 860),
               ),
               const SizedBox(height: 24),
-              if (twoColumns)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 6, child: photos),
-                    const SizedBox(width: 24),
-                    Expanded(flex: 5, child: schedule),
-                  ],
-                )
-              else ...[
-                photos,
-                const SizedBox(height: 24),
-                schedule,
-              ],
+              KeyedSubtree(key: scheduleKey, child: agenda),
+              const SizedBox(height: 24),
+              KeyedSubtree(key: photosKey, child: const PhotosPanel()),
               const SizedBox(height: 24),
               KeyedSubtree(key: pricesKey, child: const PricesPanel()),
             ],
@@ -96,7 +103,7 @@ class _HeroCard extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Text(
-          'Admin J&G —',
+          'Admin Tal da Estética —',
           style: TextStyle(
             fontSize: titleSize,
             fontWeight: FontWeight.w900,
@@ -146,10 +153,8 @@ class _HeroCard extends StatelessWidget {
       label: 'VER PORTAL DO CLIENTE',
       small: true,
       onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Atalho para o portal do cliente (a ligar depois).'),
-          ),
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const _ClientPortalPreview()),
         );
       },
     );
@@ -206,7 +211,7 @@ class _StatBox extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.red),
+          Icon(icon, color: AppColors.redGlow),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,6 +225,36 @@ class _StatBox extends StatelessWidget {
               ),
               AdminLabel(label),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Abre o site do cliente (HomePage) por cima do painel, com um botão
+/// flutuante para voltar ao admin.
+class _ClientPortalPreview extends StatelessWidget {
+  const _ClientPortalPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          const HomePage(),
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: SafeArea(
+              child: FloatingActionButton.extended(
+                onPressed: () => Navigator.of(context).pop(),
+                backgroundColor: AppColors.redDark,
+                foregroundColor: Colors.white,
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Voltar ao painel'),
+              ),
+            ),
           ),
         ],
       ),

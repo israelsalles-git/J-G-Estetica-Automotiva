@@ -139,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     _buildCard(mobile),
                     const SizedBox(height: 20),
                     const Text(
-                      '© 2026 J&G Estética Automotiva',
+                      '© 2026 Tal da Estética',
                       style: TextStyle(color: AppColors.muted, fontSize: 11),
                     ),
                   ],
@@ -224,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: _busy ? null : _forgotPassword,
                   child: const Text(
                     'Esqueci minha senha',
-                    style: TextStyle(color: AppColors.red, fontSize: 12),
+                    style: TextStyle(color: AppColors.redGlow, fontSize: 12),
                   ),
                 ),
               ),
@@ -270,7 +270,7 @@ InputDecoration _decoration({
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     border: outline(AppColors.border),
     enabledBorder: outline(AppColors.border),
-    focusedBorder: outline(AppColors.red),
+    focusedBorder: outline(AppColors.redGlow),
   );
 }
 
@@ -279,33 +279,11 @@ class _Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 96,
-      height: 96,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.card,
-        border: Border.all(
-          color: AppColors.red.withValues(alpha: 0.5),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.redGlow.withValues(alpha: 0.5),
-            blurRadius: 40,
-          ),
-        ],
-      ),
-      child: const Center(
-        child: Text(
-          'J&G',
-          style: TextStyle(
-            fontSize: 30,
-            fontWeight: FontWeight.w900,
-            color: AppColors.red,
-          ),
-        ),
-      ),
+    return Image.asset(
+      'assets/images/logo.png',
+      width: 300,
+      fit: BoxFit.contain,
+      semanticLabel: 'Tal da Estética Automotiva',
     );
   }
 }
@@ -386,7 +364,7 @@ class _PrimaryButton extends StatelessWidget {
           borderRadius: radius,
           boxShadow: [
             BoxShadow(
-              color: AppColors.redGlow.withValues(alpha: 0.4),
+              color: AppColors.redDark.withValues(alpha: 0.4),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -473,7 +451,7 @@ class _GoogleButton extends StatelessWidget {
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  color: AppColors.red,
+                  color: AppColors.redGlow,
                 ),
               )
             : const Row(

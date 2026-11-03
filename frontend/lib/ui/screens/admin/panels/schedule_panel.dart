@@ -247,8 +247,8 @@ class _DayChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return AdminTapSurface(
       onTap: onTap,
-      color: selected ? AppColors.redGlow : Colors.transparent,
-      borderColor: selected ? AppColors.redGlow : AppColors.border,
+      color: selected ? AppColors.redDark : Colors.transparent,
+      borderColor: selected ? AppColors.redDark : AppColors.border,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Text(
         label,
@@ -293,8 +293,8 @@ class _Legend extends StatelessWidget {
       spacing: 16,
       runSpacing: 6,
       children: [
-        _item('Livre', AppColors.red),
-        _item('Marcado', AppColors.redGlow),
+        _item('Livre', AppColors.redGlow),
+        _item('Marcado', AppColors.redDark),
         _item('Travado', AppColors.muted),
       ],
     );
@@ -312,22 +312,22 @@ class _SlotTile extends StatelessWidget {
     final closed = slot.state == AdminSlotState.fechado;
 
     final Color tint = switch (slot.state) {
-      AdminSlotState.livre => AppColors.red,
-      AdminSlotState.marcado => AppColors.redGlow,
+      AdminSlotState.livre => AppColors.redGlow,
+      AdminSlotState.marcado => AppColors.redDark,
       AdminSlotState.travado => AppColors.muted,
       AdminSlotState.fechado => AppColors.muted,
     };
 
     final Color background = switch (slot.state) {
-      AdminSlotState.livre => AppColors.red.withValues(alpha: 0.08),
-      AdminSlotState.marcado => AppColors.redGlow.withValues(alpha: 0.25),
+      AdminSlotState.livre => AppColors.redGlow.withValues(alpha: 0.08),
+      AdminSlotState.marcado => AppColors.redDark.withValues(alpha: 0.25),
       AdminSlotState.travado => AppColors.card2,
       AdminSlotState.fechado => AppColors.bgAlt,
     };
 
     final Color borderColor = switch (slot.state) {
-      AdminSlotState.livre => AppColors.red.withValues(alpha: 0.35),
-      AdminSlotState.marcado => AppColors.redGlow.withValues(alpha: 0.8),
+      AdminSlotState.livre => AppColors.redGlow.withValues(alpha: 0.35),
+      AdminSlotState.marcado => AppColors.redDark.withValues(alpha: 0.8),
       AdminSlotState.travado => AppColors.border,
       AdminSlotState.fechado => AppColors.border,
     };

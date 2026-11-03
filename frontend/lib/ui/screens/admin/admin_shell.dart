@@ -72,7 +72,7 @@ class _AdminShellState extends State<AdminShell> {
       bottomNavigationBar: mobile
           ? NavigationBar(
               backgroundColor: AppColors.nav,
-              indicatorColor: AppColors.red.withValues(alpha: 0.4),
+              indicatorColor: AppColors.redDark.withValues(alpha: 0.4),
               selectedIndex: _index,
               onDestinationSelected: _select,
               destinations: [
@@ -153,9 +153,9 @@ class _Sidebar extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'J&G ADMIN',
+                          'TAL DA ESTÉTICA',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 15,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -165,7 +165,7 @@ class _Sidebar extends StatelessWidget {
                             fontSize: 10,
                             letterSpacing: 1.5,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.red,
+                            color: AppColors.redGlow,
                           ),
                         ),
                       ],
@@ -210,7 +210,7 @@ class _SidebarItem extends StatelessWidget {
 
     final tile = AdminTapSurface(
       onTap: onTap,
-      color: selected ? AppColors.redGlow : Colors.transparent,
+      color: selected ? AppColors.redDark : Colors.transparent,
       borderColor: Colors.transparent,
       radius: 14,
       padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 16, vertical: 14),
@@ -269,7 +269,7 @@ class _TopBar extends StatelessWidget {
                         fontSize: 11,
                         letterSpacing: 1.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.red,
+                        color: AppColors.redGlow,
                       ),
                     ),
                     TextSpan(
@@ -308,11 +308,11 @@ class _TopBar extends StatelessWidget {
             radius: 18,
             backgroundColor: AppColors.card2,
             child: Text(
-              'J&G',
+              'TE',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: AppColors.red,
+                color: AppColors.redGlow,
               ),
             ),
           ),
