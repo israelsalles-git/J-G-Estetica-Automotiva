@@ -12,5 +12,8 @@ wheels/
 # Variáveis de ambiente
 .env
 
+# Fotos enviadas pelo painel (galeria)
+uploads/
+
 # Chave da conta de serviço do Google
 *credentials*.json

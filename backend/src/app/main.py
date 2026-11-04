@@ -1,11 +1,13 @@
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 import app.models  # noqa: F401  (registra todos os models antes de configurar os relacionamentos)
-from app.api import agendamentos, auth, clientes, health, servicos
+from app.api import agendamentos, auth, clientes, health, servicos, trabalhos
 from app.core.config import settings
 from app.services.exceptions import (
+    ArquivoInvalidoError,
     ConflitoError,
     CredenciaisInvalidasError,
     IntegracaoError,
@@ -29,7 +31,18 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(servicos.router)
 app.include_router(clientes.router)
+# Rotas públicas antes das do painel: evita que "/ocupados" seja lido como "/{agendamento_id}".
+app.include_router(agendamentos.router_publico)
 app.include_router(agendamentos.router)
+app.include_router(trabalhos.router_publico)
+app.include_router(trabalhos.router)
+
+# Fotos da galeria. check_dir=False: a pasta pode ainda não existir (é criada no primeiro envio).
+app.mount(
+    "/arquivos",
+    StaticFiles(directory=settings.upload_dir, check_dir=False),
+    name="arquivos",
+)
 
 
 # Converte os erros de negócio (services/) em respostas HTTP.
@@ -41,6 +54,13 @@ async def nao_encontrado_handler(_: Request, exc: NaoEncontradoError):
 @app.exception_handler(ConflitoError)
 async def conflito_handler(_: Request, exc: ConflitoError):
     return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
+
+
+@app.exception_handler(ArquivoInvalidoError)
+async def arquivo_invalido_handler(_: Request, exc: ArquivoInvalidoError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, content={"detail": str(exc)}
+    )
 
 
 @app.exception_handler(CredenciaisInvalidasError)

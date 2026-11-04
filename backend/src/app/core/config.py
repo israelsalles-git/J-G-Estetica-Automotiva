@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # Fuso usado nos agendamentos: datas sem fuso são interpretadas nele.
     timezone: str = "America/Sao_Paulo"
 
+    # Pasta onde ficam as fotos da galeria (servidas em /arquivos). Padrão: backend/uploads.
+    upload_dir: Path = BASE_DIR / "uploads"
+
     # Google Agenda: a integração só liga quando os dois campos estiverem preenchidos.
     google_calendar_id: str = ""
     google_credentials_file: str = ""

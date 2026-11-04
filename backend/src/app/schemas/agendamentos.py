@@ -57,3 +57,21 @@ class AgendamentoRead(BaseModel):
     servico_id: int
     servico: ServicoRead
     google_event_id: str | None
+
+
+class AgendamentoConfirmado(BaseModel):
+    """Devolvido ao site público após agendar: sem o ID do evento do Google Agenda."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    data: DataHora
+    nome_cliente: str
+    servico: ServicoRead
+
+
+class PeriodoOcupado(BaseModel):
+    """Horário ocupado para o site público: só início e fim, sem dados do cliente."""
+
+    inicio: DataHora
+    fim: DataHora

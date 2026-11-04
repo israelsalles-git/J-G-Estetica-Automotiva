@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/business_config.dart';
+import '../../core/datas.dart';
 import '../../core/load_status.dart';
 import '../../providers/booking_provider.dart';
 import '../theme/app_theme.dart';
 import 'app_container.dart';
+import 'app_text_field.dart';
 import 'section_title.dart';
 
 class BookingSection extends StatelessWidget {
@@ -94,7 +96,7 @@ class _BookingForm extends StatelessWidget {
             _TimeChip(
               time: t,
               selected: b.time == t,
-              busy: b.busySlots.contains(t),
+              busy: b.isUnavailable(t),
               onTap: () => b.selectTime(t),
             ),
         ]),
@@ -109,6 +111,17 @@ class _BookingForm extends StatelessWidget {
         if (timeError != null) ...[
           const SizedBox(height: 12),
           _InlineMessage(text: timeError),
+        ],
+        const SizedBox(height: 22),
+        const _StepTitle('3. SEU NOME:'),
+        AppTextField(
+          name: 'customerName',
+          label: 'Nome completo',
+          onChanged: b.setCustomerName,
+        ),
+        if (b.errorFor('name') != null) ...[
+          const SizedBox(height: 8),
+          _InlineMessage(text: b.errorFor('name')!),
         ],
       ]),
     );
@@ -282,7 +295,7 @@ class _BookingSummary extends StatelessWidget {
                 color: AppColors.red, fontSize: 11, letterSpacing: 1.5)),
         const SizedBox(height: 16),
         _SummaryRow('Serviço', s?.name ?? '—'),
-        _SummaryRow('Dia', b.day),
+        _SummaryRow('Dia', '${b.day} (${dataBr(b.date)})'),
         _SummaryRow('Horário', b.time ?? '—'),
         _SummaryRow('Duração', s?.duration ?? '—'),
         if (serviceError != null) ...[
@@ -312,7 +325,7 @@ class _BookingSummary extends StatelessWidget {
                   )
                 : const Icon(Icons.chat),
             label: Text(
-                b.isSubmitting ? 'Enviando...' : 'Confirmar pelo WhatsApp'),
+                b.isSubmitting ? 'Enviando...' : 'Confirmar agendamento'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.redDark,
               foregroundColor: Colors.white,

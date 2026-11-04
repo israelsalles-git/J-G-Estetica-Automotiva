@@ -1,75 +1,67 @@
 # Ligando o site ao backend
 
-O site é **só visual** (Flutter + Dart, usando apenas o pacote `provider`, que você já tem).
-Ele **não busca, não decide e não envia nada por conta própria**: mostra o que o backend entrega e
-avisa o backend quando o cliente toca em algo. Não há cliente HTTP, URL, endpoint nem regra de negócio
-dentro do código. **Como** o backend é chamado (http, dio, GraphQL, o que for) é decisão de quem o conectar.
+O site conversa com a API FastAPI do backend. Cada parte do app fala com a API por um **contrato**
+(classe abstrata em `lib/services/`) e uma **implementação** que usa o `ApiClient`
+(`lib/core/api_client.dart`). A tela só conhece o contrato.
 
-## Onde o backend se liga
+## Endereço da API
 
-Só em **`lib/main.dart`**, no bloco "LIGAÇÃO COM O BACKEND". Ali ficam 3 objetos, cada um implementando
-um **contrato** (classe abstrata) de `lib/services/`:
+Por padrão, a API é `http://localhost:8000`. Para outro endereço, sem mexer no código:
 
-| Contrato | O que o backend entrega / faz |
-|---|---|
-| `CatalogRepository` | `fetchServices()` → lista de `Service` |
-| `BookingRepository` | `fetchBusySlots(day)` → horários ocupados · `submit(BookingRequest)` → recebe o pedido e devolve o texto para o cliente |
-| `WorksRepository` | `fetchWorks()` → fotos da galeria · `createWork` / `updateWork` / `deleteWork` (painel admin) |
-
-Exemplo (o `ApiClient` abaixo é só ilustração — escreva com a biblioteca que preferir):
-
-```dart
-class ApiCatalogRepository implements CatalogRepository {
-  ApiCatalogRepository(this._api);
-  final MeuClienteHttp _api;
-
-  @override
-  Future<List<Service>> fetchServices() async {
-    final lista = await _api.get('/servicos') as List;          // caminho definido pelo backend
-    return [for (final j in lista) Service.fromJson(j as Map<String, dynamic>)];
-  }
-}
+```bash
+flutter run -d chrome --dart-define=API_URL=https://api.seudominio.com.br
 ```
 
-Depois, no `main.dart`, troque `DemoCatalogRepository()` por `ApiCatalogRepository(...)` (idem para os outros).
-Para erros que o cliente deve ver, lance `AppException('mensagem em português')`.
+## Onde cada contrato é ligado
 
-## Dados de demonstração (`lib/demo/`)
+| Contrato | Implementação | Endpoint |
+|---|---|---|
+| `CatalogRepository` | `ApiCatalogRepository` | `GET /servicos` (público) |
+| `BookingRepository` | `ApiBookingRepository` | `GET /agendamentos/ocupados` e `POST /agendamentos/publico` (públicos) |
+| `WorksRepository` | `ApiWorksRepository` | `GET /trabalhos` (público); `POST`, `PUT` e `DELETE` (painel, com token) |
+| `AuthService` | `ApiAuthService` | `POST /auth/login` (painel) |
 
-Existem **só para o site mostrar algo na tela** enquanto não há backend: lista de serviços de exemplo,
-um "agendamento" que não envia nada e a galeria lendo `assets/trabalhos/`. **Apague a pasta `lib/demo/`**
-quando o backend entrar. Para ver o site "sem nada" (como ficará se o backend estiver fora do ar), use
-`NotConnectedCatalogRepository()` etc. — a tela mostra o estado de erro com "Tentar novamente".
-
-## Botão flutuante de contato
-
-`HomePage(onContactPressed: ...)` — sem ação padrão. Hoje, ao tocar, aparece um aviso de que o contato ainda
-não está conectado. Quem conectar decide o que ele faz.
+A ligação acontece em `lib/main.dart` (site) e `lib/main_admin.dart` (painel).
 
 ## Formato dos dados
 
-`fromJson` / `toJson` dos modelos (`lib/models/`) são apenas conversores, para facilitar. Se o backend usar
-outros nomes de campo, ajuste **só ali**.
+Os modelos (`lib/models/`) traduzem o JSON da API no `fromJson` / `toJson`. Se a API mudar um nome
+de campo, ajuste só ali.
 
-- **Service**: `id, category, name, description, duration, price, imageUrl, vip`
-- **Work**: `id, imageUrl, title?, description?, category?, date? (ISO 8601)`
-- **BookingRequest** (enviado): `serviceId, day, time, customerName?, customerPhone?, customerEmail?, notes?`
+- **Service** (`GET /servicos`): `id, nome, duracao_min, preco, categoria, descricao, destaque`.
+  O preço chega como texto (`"70.00"`) e é convertido para número. A duração (`60`) vira texto (`"1h"`).
+- **Work** (`GET /trabalhos`): `id, titulo, descricao, categoria, data, imagem_url`.
+  `imagem_url` é um caminho relativo (`/arquivos/...`); o `ApiWorksRepository` completa com o endereço da API.
+- **BookingRequest** (enviado a `POST /agendamentos/publico`): `servico_id, data, nome_cliente`.
+  A `data` vai com dia e hora, sem fuso: a API lê no horário de Brasília.
+- **Horários ocupados** (`GET /agendamentos/ocupados`): lista de `{inicio, fim}`, sem nenhum dado do cliente.
+  O site desabilita os horários que começam dentro de um desses períodos.
 
-`imageUrl` aceita endereço `http(s)` **ou** caminho de arquivo do projeto (`assets:` do pubspec).
-Observação: `day` hoje é "Sábado"/"Domingo"; um backend real provavelmente vai querer uma **data**.
+## Regras que a API aplica
 
-## O que a interface já tem pronto
+- **Um atendimento por vez**: o período de cada agendamento é o horário de início mais a duração do
+  serviço. Encostar um no outro (fim = início) é permitido. Um conflito volta como `409` com a mensagem
+  "Horário indisponível: já existe um agendamento nesse período", que o site mostra ao cliente.
+- **Datas passadas** são recusadas (`422`).
+- **Serviço inativo** não pode ser agendado (`409`).
 
-- **Estados de tela** (carregando / erro com "Tentar novamente" / vazio) no catálogo, na galeria e nos horários;
-  botão "Confirmar" com "Enviando…".
-- **Validações visuais** em `lib/core/validators.dart` (obrigatório, nome, telefone BR, e-mail) e o campo reutilizável
-  `AppTextField` (o parâmetro `name` = nome da propriedade enviada ao backend). Hoje o formulário pede só
-  dia e horário; se o backend exigir nome/telefone, adicione os `AppTextField` na `_BookingForm`.
-- **Galeria**: card 4:3 com título, descrição, categoria e data opcionais; `WorksProvider` já tem
-  `add / update / remove` para o painel admin (chamam o `WorksRepository`).
+## Fotos da galeria
 
-## Pendências (do backend / painel admin)
+Envio pelo painel como multipart (`POST /trabalhos`, campo `imagem`):
+- formatos JPG, PNG ou WEBP, conferidos pelo conteúdo do arquivo (não só pela extensão);
+- até 5 MB;
+- a foto é gravada em `backend/uploads/trabalhos/` e servida em `/arquivos/...`.
 
-- Implementar os 3 contratos e definir o formato do JSON.
-- Armazenamento das fotos (devolver `imageUrl`) e a tela de upload do admin (precisará de um seletor de arquivo).
-- Autenticação do painel admin e regras de agendamento (conflito, confirmação, cancelamento).
+## Erros
+
+A API responde `{"detail": "..."}` com mensagem em português. O `ApiClient` usa essa mensagem
+direto na tela (`AppException`). Sem conexão, o usuário vê "Não foi possível conectar ao servidor.".
+Um `401` mostra "Sessão expirada. Entre novamente.".
+
+## O que ainda não está ligado
+
+- **Painel "Fotos de Serviços"** (`photos_panel.dart`): ainda simula o envio. Para ligar ao
+  `WorksRepository`, falta escolher um seletor de arquivos (dependência nova) e adaptar o painel.
+- **Painéis "Preços" e "Agenda"** do admin: ainda usam dados fixos na própria tela.
+- **Login com Google**: o botão existe, mas a API não tem esse login ainda.
+- **Contato pelo botão flutuante**: `HomePage(onContactPressed: ...)` continua sem ação definida.

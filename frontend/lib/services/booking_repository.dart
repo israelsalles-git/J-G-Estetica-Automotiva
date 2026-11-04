@@ -1,25 +1,13 @@
-import '../core/app_exception.dart';
 import '../models/booking_request.dart';
 
 /// CONTRATO: disponibilidade e envio do agendamento.
-/// Quem decide o que é "ocupado" e o que acontece ao confirmar é o backend.
+/// Quem decide o que é "ocupado" e aceita o pedido é o backend.
+/// Implementação real: `ApiBookingRepository`.
 abstract class BookingRepository {
-  /// Horários ocupados no [day] (ex.: {'10:00', '13:00'}).
-  Future<Set<String>> fetchBusySlots(String day);
+  /// Horários "HH:mm" que começam dentro de algum atendimento já marcado no [day].
+  Future<Set<String>> fetchBusySlots(DateTime day);
 
-  /// Envia o pedido. Devolva o texto a mostrar ao cliente em [BookingResult.message];
-  /// em caso de recusa, lance `AppException('mensagem para o cliente')`.
+  /// Envia o pedido. Devolve o texto a mostrar ao cliente em [BookingResult.message].
+  /// Em caso de recusa, lança `AppException('mensagem para o cliente')`.
   Future<BookingResult> submit(BookingRequest request);
-}
-
-/// Padrão enquanto não há backend: nada é enviado.
-class NotConnectedBookingRepository implements BookingRepository {
-  const NotConnectedBookingRepository();
-
-  @override
-  Future<Set<String>> fetchBusySlots(String day) async => throw backendNotConnected;
-
-  @override
-  Future<BookingResult> submit(BookingRequest request) async =>
-      throw backendNotConnected;
 }

@@ -115,6 +115,11 @@ Documentação automática: `http://localhost:8000/docs`
 | `JWT_EXPIRA_MIN` | Validade do token de login, em minutos | `480` (8 horas) |
 | `CORS_ORIGIN_REGEX` | Padrão (regex) de origens liberadas para chamar a API pelo navegador. Em desenvolvimento: `http://localhost:\d+` | vazio (nenhuma) |
 | `CORS_ORIGINS` | Origens exatas liberadas, em JSON e sem `/` no final. Ex.: `["https://seusite.com.br"]` | `[]` (nenhuma) |
+| `UPLOAD_DIR` | Pasta onde ficam as fotos da galeria (servidas em `/arquivos`) | `backend/uploads` |
+
+> **Agendamentos:** só pode haver um atendimento por vez. O período de cada agendamento vai do horário marcado até a duração do serviço, e encostar um no outro é permitido. Conflito retorna `409`.
+>
+> **Rotas públicas (site, sem token):** `GET /servicos`, `GET /trabalhos`, `GET /agendamentos/ocupados` (só horários, sem dados do cliente) e `POST /agendamentos/publico` (o cliente agenda pelo site). Todas as demais exigem login.
 
 > **CORS:** o site Flutter Web roda em outra origem (porta/domínio) que a API, então o navegador só deixa o site chamar a API se a origem estiver liberada em `CORS_ORIGIN_REGEX` ou `CORS_ORIGINS`. Não deixe `CORS_ORIGINS=` vazio no `.env` (a API não sobe): use `[]` ou apague a linha.
 

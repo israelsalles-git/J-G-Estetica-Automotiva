@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from sqlalchemy import Boolean, CheckConstraint, Integer, Numeric, String, true
+from sqlalchemy import Boolean, CheckConstraint, Integer, Numeric, String, false, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -37,9 +37,31 @@ class Servico(Base):
         nullable=False
     )
 
+    # Categoria do catálogo do site (ex.: Carro, Moto); o site agrupa os serviços por ela
+    categoria: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="Outros",
+        server_default="Outros",
+        index=True
+    )
+
+    descricao: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True
+    )
+
+    # Serviço em destaque no site (aparece com selo)
+    destaque: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false()
+    )
+
     ativo: Mapped[bool] = mapped_column(
-        Boolean, 
-        nullable=False, 
-        default=True, 
+        Boolean,
+        nullable=False,
+        default=True,
         server_default=true()
     )

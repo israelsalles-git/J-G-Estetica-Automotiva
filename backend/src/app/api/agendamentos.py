@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
@@ -5,17 +7,48 @@ from app.core.database import get_db
 from app.core.security import require_auth
 from app.integrations.google_agenda import Agenda, get_agenda
 from app.schemas.agendamentos import (
+    AgendamentoConfirmado,
     AgendamentoCreate,
     AgendamentoRead,
     AgendamentoUpdate,
     DataHora,
+    PeriodoOcupado,
 )
 from app.services import agendamentos as agendamentos_service
 
-# Todas as rotas exigem token: os agendamentos têm o nome do cliente (dado pessoal).
+# Rotas públicas (site do cliente): sem token e sem dados pessoais na resposta.
+# Precisa ser incluído no app ANTES de `router`, senão "/ocupados" cairia em "/{agendamento_id}".
+router_publico = APIRouter(prefix="/agendamentos", tags=["agendamentos (site)"])
+
+# Rotas do painel: todas exigem token, porque os agendamentos têm o nome do cliente (dado pessoal).
 router = APIRouter(
     prefix="/agendamentos", tags=["agendamentos"], dependencies=[Depends(require_auth)]
 )
+
+
+@router_publico.get("/ocupados", response_model=list[PeriodoOcupado])
+def listar_horarios_ocupados(
+    data_inicio: DataHora,
+    data_fim: DataHora,
+    db: Session = Depends(get_db),
+):
+    """Períodos já ocupados entre data_inicio e data_fim, para o site desabilitar horários"""
+    return [
+        {"inicio": inicio, "fim": fim}
+        for inicio, fim in agendamentos_service.listar_ocupados(db, data_inicio, data_fim)
+    ]
+
+
+@router_publico.post(
+    "/publico", response_model=AgendamentoConfirmado, status_code=status.HTTP_201_CREATED
+)
+def solicitar_agendamento(
+    dados: AgendamentoCreate,
+    db: Session = Depends(get_db),
+    agenda: Agenda = Depends(get_agenda),
+):
+    """Agendamento feito pelo cliente no site: cria o evento na agenda, se ela estiver ligada"""
+    return agendamentos_service.criar(db, agenda, dados)
 
 
 @router.get("", response_model=list[AgendamentoRead])

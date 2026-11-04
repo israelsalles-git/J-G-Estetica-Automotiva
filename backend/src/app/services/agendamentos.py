@@ -7,7 +7,7 @@ from app.integrations.google_agenda import Agenda, EventoAgenda
 from app.models.agendamentos import Agendamento
 from app.models.servicos import Servico
 from app.repositories import agendamentos as agendamentos_repository
-from app.schemas.agendamentos import AgendamentoCreate, AgendamentoUpdate
+from app.schemas.agendamentos import AgendamentoCreate, AgendamentoUpdate, para_fuso_local
 from app.services import servicos as servicos_service
 from app.services.exceptions import ConflitoError, NaoEncontradoError
 
@@ -19,14 +19,54 @@ def _obter_servico_ativo(db: Session, servico_id: int) -> Servico:
     return servico
 
 
+def _intervalo(inicio: datetime, servico: Servico) -> tuple[datetime, datetime]:
+    """Período que o atendimento ocupa: começa na data e dura o tempo do serviço."""
+    inicio = para_fuso_local(inicio)
+    return inicio, inicio + timedelta(minutes=servico.duracao_min)
+
+
 def _montar_evento(agendamento: Agendamento, servico: Servico) -> EventoAgenda:
     """Evento do Google Agenda: começa na data do agendamento e dura o tempo do serviço."""
+    inicio, fim = _intervalo(agendamento.data, servico)
     return EventoAgenda(
         titulo=f"{servico.nome} - {agendamento.nome_cliente}",
-        inicio=agendamento.data,
-        fim=agendamento.data + timedelta(minutes=servico.duracao_min),
+        inicio=inicio,
+        fim=fim,
         descricao=f"Cliente: {agendamento.nome_cliente}\nServiço: {servico.nome}",
     )
+
+
+def _ocupados_no_periodo(
+    db: Session, data_inicio: datetime, data_fim: datetime, ignorar_id: int | None = None
+) -> list[tuple[datetime, datetime]]:
+    """Períodos (início, fim) dos agendamentos que se sobrepõem a [data_inicio, data_fim)."""
+    ocupados = []
+    for existente in agendamentos_repository.listar_que_podem_sobrepor(db, data_inicio, data_fim):
+        if existente.id == ignorar_id:
+            continue
+        inicio, fim = _intervalo(existente.data, existente.servico)
+        if inicio < data_fim and fim > data_inicio:
+            ocupados.append((inicio, fim))
+    return ocupados
+
+
+def _garantir_horario_livre(
+    db: Session,
+    inicio: datetime,
+    servico: Servico,
+    ignorar_id: int | None = None,
+) -> None:
+    """Um atendimento por vez: recusa o horário se ele se sobrepõe a outro agendamento."""
+    inicio, fim = _intervalo(inicio, servico)
+    if _ocupados_no_periodo(db, inicio, fim, ignorar_id):
+        raise ConflitoError("Horário indisponível: já existe um agendamento nesse período")
+
+
+def listar_ocupados(
+    db: Session, data_inicio: datetime, data_fim: datetime
+) -> list[tuple[datetime, datetime]]:
+    """Períodos ocupados no intervalo pedido, sem nenhum dado pessoal do cliente."""
+    return _ocupados_no_periodo(db, data_inicio, data_fim)
 
 
 def listar(
@@ -46,6 +86,7 @@ def obter(db: Session, agendamento_id: int) -> Agendamento:
 def criar(db: Session, agenda: Agenda, dados: AgendamentoCreate) -> Agendamento:
     """Cria o evento no Google Agenda e depois grava o agendamento com o ID do evento."""
     servico = _obter_servico_ativo(db, dados.servico_id)
+    _garantir_horario_livre(db, dados.data, servico)
     agendamento = Agendamento(**dados.model_dump())
     agendamento.google_event_id = agenda.criar_evento(_montar_evento(agendamento, servico))
     try:
@@ -72,6 +113,11 @@ def atualizar(
         if servico_id != agendamento.servico_id
         else agendamento.servico
     )
+    # Confere o horário novo antes de mexer no registro (o próprio agendamento não conta).
+    _garantir_horario_livre(
+        db, alteracoes.get("data", agendamento.data), servico, ignorar_id=agendamento.id
+    )
+
     for campo, valor in alteracoes.items():
         setattr(agendamento, campo, valor)
     agendamento.servico = servico

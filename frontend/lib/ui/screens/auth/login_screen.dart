@@ -10,7 +10,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
     required this.onLoggedIn,
-    this.authService = const MockAuthService(),
+    required this.authService,
   });
 
   final ValueChanged<AuthUser> onLoggedIn;

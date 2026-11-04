@@ -9,7 +9,14 @@ import '../models/service.dart';
 import '../services/booking_repository.dart';
 import 'catalog_provider.dart';
 
-/// Estado do agendamento: serviço, dia, horário, disponibilidade,
+/// Próximo dia da semana (ex.: sábado) a partir de hoje. Se hoje já for esse dia, é hoje.
+DateTime proximoDia(int weekday, {DateTime? agora}) {
+  final hoje = agora ?? DateTime.now();
+  final faltam = (weekday - hoje.weekday) % 7;
+  return DateTime(hoje.year, hoje.month, hoje.day + faltam);
+}
+
+/// Estado do agendamento: serviço, dia, horário, nome do cliente, disponibilidade,
 /// validação dos campos e envio (loading/sucesso/erro).
 class BookingProvider extends ChangeNotifier {
   final CatalogProvider _catalog;
@@ -31,16 +38,27 @@ class BookingProvider extends ChangeNotifier {
     super.dispose();
   }
 
+  // Data real de cada dia do site (ex.: "Sábado" -> o próximo sábado).
+  final Map<String, DateTime> _datas = {
+    for (final dia in BusinessConfig.days)
+      dia: proximoDia(BusinessConfig.weekdays[dia]!),
+  };
+
   // ---- escolhas do cliente ----
   Service? _service; // null = ainda não escolheu → usa o primeiro do catálogo
   String _day = BusinessConfig.days.first;
   String? _time;
+  String _customerName = '';
 
   /// Serviço escolhido (ou o primeiro do catálogo, enquanto nada foi escolhido).
   Service? get service =>
       _service ?? (_catalog.services.isEmpty ? null : _catalog.services.first);
   String get day => _day;
+
+  /// Data real do dia escolhido (o próximo sábado ou domingo).
+  DateTime get date => _datas[_day]!;
   String? get time => _time;
+  String get customerName => _customerName;
 
   // ---- disponibilidade ----
   Set<String> _busySlots = const {};
@@ -51,10 +69,26 @@ class BookingProvider extends ChangeNotifier {
   LoadStatus get slotsStatus => _slotsStatus;
   String? get slotsError => _slotsError;
 
+  /// Horário que não pode ser escolhido: já ocupado ou já passou hoje.
+  bool isUnavailable(String horario) =>
+      _busySlots.contains(horario) || _jaPassou(horario);
+
+  bool _jaPassou(String horario) {
+    final partes = horario.split(':');
+    final inicio = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      int.parse(partes[0]),
+      int.parse(partes[1]),
+    );
+    return inicio.isBefore(DateTime.now());
+  }
+
   // ---- validação ----
   Map<String, String> _errors = const {};
 
-  /// Erro de um campo ('service', 'day' ou 'time'), ou null.
+  /// Erro de um campo ('service', 'day', 'time' ou 'name'), ou null.
   String? errorFor(String field) => _errors[field];
 
   // ---- envio ----
@@ -78,6 +112,7 @@ class BookingProvider extends ChangeNotifier {
   void selectDay(String day) {
     if (day == _day) return;
     _day = day;
+    _time = null;
     _afterEdit('day');
     _loadAvailability();
   }
@@ -85,6 +120,11 @@ class BookingProvider extends ChangeNotifier {
   void selectTime(String time) {
     _time = time;
     _afterEdit('time');
+  }
+
+  void setCustomerName(String name) {
+    _customerName = name;
+    _afterEdit('name');
   }
 
   void _afterEdit(String field) {
@@ -104,10 +144,10 @@ class BookingProvider extends ChangeNotifier {
     _slotsError = null;
     notifyListeners();
     try {
-      final busy = await _repository.fetchBusySlots(requestedDay);
+      final busy = await _repository.fetchBusySlots(_datas[requestedDay]!);
       if (requestedDay != _day) return; // o cliente já trocou de dia
       _busySlots = busy;
-      if (_time != null && busy.contains(_time)) _time = null;
+      if (_time != null && isUnavailable(_time!)) _time = null;
       _slotsStatus = LoadStatus.success;
     } catch (e) {
       if (requestedDay != _day) return;
@@ -133,9 +173,12 @@ class BookingProvider extends ChangeNotifier {
     final timeError = Validators.choice(_time, 'Escolha o horário desejado.');
     if (timeError != null) {
       errors['time'] = timeError;
-    } else if (_busySlots.contains(_time)) {
+    } else if (isUnavailable(_time!)) {
       errors['time'] = 'Esse horário não está mais disponível.';
     }
+
+    final nameError = Validators.name(_customerName);
+    if (nameError != null) errors['name'] = nameError;
 
     _errors = errors;
     notifyListeners();
@@ -151,10 +194,15 @@ class BookingProvider extends ChangeNotifier {
     _submitError = null;
     notifyListeners();
     try {
-      _result = await _repository.submit(
-        BookingRequest(service: service!, day: _day, time: _time!),
-      );
+      _result = await _repository.submit(BookingRequest(
+        service: service!,
+        date: date,
+        time: _time!,
+        customerName: _customerName.trim(),
+      ));
       _submitStatus = LoadStatus.success;
+      // Recarrega os horários: o que acabou de ser marcado sai da lista.
+      _loadAvailability();
     } catch (e) {
       _submitStatus = LoadStatus.error;
       _submitError = errorMessage(e,

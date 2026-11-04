@@ -14,7 +14,3 @@ String errorMessage(
   String fallback = 'Algo deu errado. Tente novamente.',
 }) =>
     error is AppException ? error.message : fallback;
-
-/// Usada pelos repositórios padrão enquanto o backend não está ligado.
-const backendNotConnected =
-    AppException('O backend ainda não está conectado.');

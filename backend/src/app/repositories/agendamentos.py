@@ -1,10 +1,12 @@
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.agendamentos import Agendamento
+
+MARGEM_SOBREPOSICAO = timedelta(days=1)
 
 
 def listar(
@@ -15,6 +17,23 @@ def listar(
         query = query.where(Agendamento.data >= data_inicio)
     if data_fim is not None:
         query = query.where(Agendamento.data <= data_fim)
+    return db.scalars(query).all()
+
+
+def listar_que_podem_sobrepor(
+    db: Session, data_inicio: datetime, data_fim: datetime
+) -> Sequence[Agendamento]:
+    """Agendamentos que começam antes de `data_fim` e não muito antes de `data_inicio`.
+
+    A duração depende do serviço, então o filtro exato de sobreposição é feito no service.
+    A margem de 1 dia cobre qualquer serviço de duração razoável.
+    """
+    query = (
+        select(Agendamento)
+        .where(Agendamento.data < data_fim)
+        .where(Agendamento.data >= data_inicio - MARGEM_SOBREPOSICAO)
+        .order_by(Agendamento.data)
+    )
     return db.scalars(query).all()
 
 
