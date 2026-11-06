@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 // dart:io não existe no navegador (Flutter Web), por isso só usamos o http.ClientException.
 import 'package:http/http.dart' as http;
 
@@ -30,12 +31,6 @@ class ApiClient {
   static const _timeout = Duration(seconds: 15);
 
   String? _token;
-
-  /// Chamado quando a API responde 401 a uma requisição que levou token
-  /// (sessão vencida). O token é descartado ANTES de chamar, então vários 401
-  /// ao mesmo tempo disparam o aviso só uma vez. Um 401 no login (sem token)
-  /// não dispara nada.
-  void Function()? onSessaoExpirada;
 
   /// Endereço base da API, usado para montar links de fotos (`/arquivos/...`).
   String get baseUrl => _baseUrl;
@@ -94,7 +89,10 @@ class ApiClient {
   }
 
   Future<dynamic> _enviar(Future<http.Response> Function() chamada) async {
-    final tokenUsado = _token;
+    // Guardado antes da chamada: um 401 só é "sessão expirada" se a requisição
+    // realmente levava token (no login, 401 significa senha errada).
+    final enviouToken = _token != null;
+
     final http.Response resposta;
     try {
       resposta = await chamada().timeout(_timeout);
@@ -104,39 +102,46 @@ class ApiClient {
       throw const AppException('Não foi possível conectar ao servidor.');
     }
 
-    final corpo = resposta.bodyBytes.isEmpty
-        ? null
-        : jsonDecode(utf8.decode(resposta.bodyBytes));
+    final corpo = _decodificar(resposta);
 
     if (resposta.statusCode >= 200 && resposta.statusCode < 300) {
       return corpo;
     }
-    // 401 com token = sessão vencida. Só avisa se o token ainda é o mesmo que
-    // foi enviado (se já foi limpo ou trocado por outro login, ignora).
-    if (resposta.statusCode == 401 && tokenUsado != null && _token == tokenUsado) {
-      _token = null;
-      onSessaoExpirada?.call();
-    }
-    throw AppException(_mensagemDeErro(resposta.statusCode, corpo));
+    throw AppException(
+      mensagemDeErro(resposta.statusCode, corpo, enviouToken: enviouToken),
+    );
   }
 
-  /// A API manda `{"detail": "..."}` com mensagens em português. Erros de validação
-  /// (422) vêm como lista, então usamos uma mensagem genérica para eles.
-  static String _mensagemDeErro(int status, dynamic corpo) {
-    if (status == 401) return 'Sessão expirada. Entre novamente.';
-    if (corpo is Map && corpo['detail'] is String) return corpo['detail'] as String;
+  /// Lê o corpo como JSON. Se não for JSON (HTML de proxy/502, texto puro,
+  /// UTF-8 inválido), devolve null em vez de lançar exceção.
+  static dynamic _decodificar(http.Response r) {
+    if (r.bodyBytes.isEmpty) return null;
+    try {
+      return jsonDecode(utf8.decode(r.bodyBytes));
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// Escolhe a mensagem mostrada ao usuário. A API manda `{"detail": ...}`:
+  /// texto (nossas mensagens em português) ou lista (422 do Pydantic).
+  @visibleForTesting
+  static String mensagemDeErro(int status, dynamic corpo, {bool enviouToken = false}) {
+    if (status == 401 && enviouToken) return 'Sessão expirada. Entre novamente.';
+
+    final detail = corpo is Map ? corpo['detail'] : null;
+    if (detail is String) return detail;
+    if (detail is List && detail.isNotEmpty && detail.first is Map) {
+      final msg = (detail.first as Map)['msg'];
+      // Nossos ValueError chegam como "Value error, <texto em português>".
+      // Os erros nativos do Pydantic vêm em inglês: nesses casos cai na genérica.
+      const prefixo = 'Value error, ';
+      if (msg is String && msg.startsWith(prefixo)) {
+        return msg.substring(prefixo.length);
+      }
+    }
     if (status == 422) return 'Confira os dados informados e tente novamente.';
     return 'Algo deu errado no servidor. Tente novamente.';
-  }
-
-  /// Pergunta se a API está de pé (`GET /health`). Nunca lança erro.
-  Future<bool> verificarSaude({String path = '/health'}) async {
-    try {
-      final r = await _http.get(_uri(path)).timeout(_timeout);
-      return r.statusCode >= 200 && r.statusCode < 300;
-    } catch (_) {
-      return false;
-    }
   }
 
   void close() => _http.close();
