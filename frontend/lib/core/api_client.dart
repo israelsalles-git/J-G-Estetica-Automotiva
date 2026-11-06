@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show VoidCallback, visibleForTesting;
 // dart:io não existe no navegador (Flutter Web), por isso só usamos o http.ClientException.
 import 'package:http/http.dart' as http;
 
@@ -36,6 +36,10 @@ class ApiClient {
   String get baseUrl => _baseUrl;
 
   bool get hasToken => _token != null;
+
+  /// Chamado quando a API responde 401 a uma requisição que levava token
+  /// (sessão vencida). Não dispara no login com senha errada (401 sem token).
+  VoidCallback? onSessaoExpirada;
 
   void setToken(String? token) => _token = token;
 
@@ -107,6 +111,7 @@ class ApiClient {
     if (resposta.statusCode >= 200 && resposta.statusCode < 300) {
       return corpo;
     }
+    if (resposta.statusCode == 401 && enviouToken) onSessaoExpirada?.call();
     throw AppException(
       mensagemDeErro(resposta.statusCode, corpo, enviouToken: enviouToken),
     );
@@ -142,6 +147,18 @@ class ApiClient {
     }
     if (status == 422) return 'Confira os dados informados e tente novamente.';
     return 'Algo deu errado no servidor. Tente novamente.';
+  }
+
+  /// Verifica se a API está no ar (GET /health). Nunca lança exceção.
+  Future<bool> verificarSaude() async {
+    try {
+      final r = await _http
+          .get(_uri('/health'), headers: const {'Accept': 'application/json'})
+          .timeout(_timeout);
+      return r.statusCode >= 200 && r.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
   }
 
   void close() => _http.close();
