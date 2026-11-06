@@ -48,7 +48,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) return 'Informe sua senha.';
-    if (value.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
+    // Mesmo mínimo do back-end (SENHA_MIN = 8).
+    if (value.length < 8) return 'A senha deve ter pelo menos 8 caracteres.';
     return null;
   }
 

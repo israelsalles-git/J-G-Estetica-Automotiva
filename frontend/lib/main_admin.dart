@@ -37,15 +37,16 @@ void main() {
           create: (_) => WorksProvider(repository: ApiWorksRepository(api))..load(),
         ),
       ],
-      child: AdminApp(authService: ApiAuthService(api)),
+      child: AdminApp(api: api, authService: ApiAuthService(api)),
     ),
   );
 }
 
 class AdminApp extends StatelessWidget {
-  const AdminApp({super.key, required this.authService});
+  const AdminApp({super.key, required this.authService, required this.api});
 
   final AuthService authService;
+  final ApiClient api;
 
   @override
   Widget build(BuildContext context) {
@@ -53,16 +54,18 @@ class AdminApp extends StatelessWidget {
       title: 'Tal da Estética – Admin',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      home: _AuthGate(authService: authService),
+      home: _AuthGate(authService: authService, api: api),
     );
   }
 }
 
-/// Mostra o login enquanto não houver usuário e o painel depois do login.
+/// Decide a tela: loading enquanto tenta restaurar a sessão salva, login se
+/// não houver sessão, painel se houver. Também cuida de "Sair" e de sessão vencida.
 class _AuthGate extends StatefulWidget {
-  const _AuthGate({required this.authService});
+  const _AuthGate({required this.authService, required this.api});
 
   final AuthService authService;
+  final ApiClient api;
 
   @override
   State<_AuthGate> createState() => _AuthGateState();
@@ -70,15 +73,79 @@ class _AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<_AuthGate> {
   AuthUser? _user;
+  bool _carregando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // O ApiClient avisa aqui quando a API responde 401 a uma chamada com token.
+    widget.api.onSessaoExpirada = _sessaoExpirou;
+    _restaurar();
+  }
+
+  @override
+  void dispose() {
+    widget.api.onSessaoExpirada = null;
+    super.dispose();
+  }
+
+  Future<void> _restaurar() async {
+    AuthUser? user;
+    try {
+      user = await widget.authService.restoreSession();
+    } catch (_) {
+      user = null;
+    }
+    if (!mounted) return;
+    setState(() {
+      _user = user;
+      _carregando = false;
+    });
+  }
+
+  /// Pode ser chamado várias vezes seguidas (vários 401 juntos): só a primeira vale.
+  void _sessaoExpirou() {
+    if (!mounted || _carregando || _user == null) return;
+    widget.authService.signOut(); // apaga também o token salvo
+    _voltarAoLogin();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sessão expirada. Entre novamente.')),
+      );
+    });
+  }
+
+  Future<void> _sair() async {
+    await widget.authService.signOut();
+    if (!mounted) return;
+    _voltarAoLogin();
+  }
+
+  void _voltarAoLogin() {
+    // Fecha telas empilhadas (ex.: "Ver portal do cliente") antes de trocar a tela.
+    Navigator.of(context).popUntil((rota) => rota.isFirst);
+    setState(() => _user = null);
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (_user == null) {
-      return LoginScreen(
-        authService: widget.authService,
-        onLoggedIn: (user) => setState(() => _user = user),
+    if (_carregando) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppColors.redGlow)),
       );
     }
-    return const AdminShell();
+    final user = _user;
+    if (user == null) {
+      return LoginScreen(
+        authService: widget.authService,
+        onLoggedIn: (u) => setState(() => _user = u),
+      );
+    }
+    return AdminShell(
+      user: user,
+      onLogout: _sair,
+      checkOnline: widget.api.verificarSaude,
+    );
   }
 }

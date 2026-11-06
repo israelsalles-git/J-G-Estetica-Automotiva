@@ -31,6 +31,12 @@ class ApiClient {
 
   String? _token;
 
+  /// Chamado quando a API responde 401 a uma requisição que levou token
+  /// (sessão vencida). O token é descartado ANTES de chamar, então vários 401
+  /// ao mesmo tempo disparam o aviso só uma vez. Um 401 no login (sem token)
+  /// não dispara nada.
+  void Function()? onSessaoExpirada;
+
   /// Endereço base da API, usado para montar links de fotos (`/arquivos/...`).
   String get baseUrl => _baseUrl;
 
@@ -88,6 +94,7 @@ class ApiClient {
   }
 
   Future<dynamic> _enviar(Future<http.Response> Function() chamada) async {
+    final tokenUsado = _token;
     final http.Response resposta;
     try {
       resposta = await chamada().timeout(_timeout);
@@ -104,6 +111,12 @@ class ApiClient {
     if (resposta.statusCode >= 200 && resposta.statusCode < 300) {
       return corpo;
     }
+    // 401 com token = sessão vencida. Só avisa se o token ainda é o mesmo que
+    // foi enviado (se já foi limpo ou trocado por outro login, ignora).
+    if (resposta.statusCode == 401 && tokenUsado != null && _token == tokenUsado) {
+      _token = null;
+      onSessaoExpirada?.call();
+    }
     throw AppException(_mensagemDeErro(resposta.statusCode, corpo));
   }
 
@@ -114,6 +127,16 @@ class ApiClient {
     if (corpo is Map && corpo['detail'] is String) return corpo['detail'] as String;
     if (status == 422) return 'Confira os dados informados e tente novamente.';
     return 'Algo deu errado no servidor. Tente novamente.';
+  }
+
+  /// Pergunta se a API está de pé (`GET /health`). Nunca lança erro.
+  Future<bool> verificarSaude({String path = '/health'}) async {
+    try {
+      final r = await _http.get(_uri(path)).timeout(_timeout);
+      return r.statusCode >= 200 && r.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
   }
 
   void close() => _http.close();

@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/ui/screens/admin/admin_overview_screen.dart';
 import 'package:frontend/ui/theme/app_theme.dart';
 import 'package:frontend/ui/widgets/admin/admin_ui.dart';
@@ -15,7 +18,21 @@ class _NavItem {
 /// Casca do painel admin: menu lateral (ou barra inferior no celular),
 /// barra superior e a página com os painéis.
 class AdminShell extends StatefulWidget {
-  const AdminShell({super.key});
+  const AdminShell({
+    super.key,
+    required this.user,
+    required this.onLogout,
+    this.checkOnline,
+  });
+
+  /// Quem está logado (nome e e-mail vão no menu do avatar).
+  final AuthUser user;
+
+  /// Chamado quando a pessoa escolhe "Sair" no menu.
+  final VoidCallback onLogout;
+
+  /// Pergunta se a API está online (alimenta o "STATUS" da barra superior).
+  final Future<bool> Function()? checkOnline;
 
   @override
   State<AdminShell> createState() => _AdminShellState();
@@ -56,7 +73,13 @@ class _AdminShellState extends State<AdminShell> {
 
     final content = Column(
       children: [
-        _TopBar(section: _items[_index].label, mobile: mobile),
+        _TopBar(
+          section: _items[_index].label,
+          mobile: mobile,
+          user: widget.user,
+          onLogout: widget.onLogout,
+          checkOnline: widget.checkOnline,
+        ),
         Expanded(
           child: AdminOverviewScreen(
             heroKey: _heroKey,
@@ -240,12 +263,19 @@ class _SidebarItem extends StatelessWidget {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.section, required this.mobile});
+  const _TopBar({
+    required this.section,
+    required this.mobile,
+    required this.user,
+    required this.onLogout,
+    required this.checkOnline,
+  });
 
   final String section;
   final bool mobile;
-
-  static const _online = Color(0xFF34D399);
+  final AuthUser user;
+  final VoidCallback onLogout;
+  final Future<bool> Function()? checkOnline;
 
   @override
   Widget build(BuildContext context) {
@@ -290,33 +320,166 @@ class _TopBar extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (!mobile) ...const [
-            Icon(Icons.circle, size: 8, color: _online),
-            SizedBox(width: 8),
-            Text(
-              'STATUS: ONLINE',
-              style: TextStyle(
-                fontSize: 11,
-                letterSpacing: 1.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.muted,
-              ),
-            ),
-            SizedBox(width: 20),
+          if (!mobile) ...[
+            _ApiStatus(check: checkOnline),
+            const SizedBox(width: 20),
           ],
-          const CircleAvatar(
-            radius: 18,
-            backgroundColor: AppColors.card2,
-            child: Text(
-              'TE',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: AppColors.redGlow,
-              ),
-            ),
-          ),
+          _UserMenu(user: user, onLogout: onLogout),
         ],
+      ),
+    );
+  }
+}
+
+enum _ApiState { verificando, online, offline }
+
+/// "STATUS: ONLINE/OFFLINE" de verdade: consulta a API ao abrir e a cada minuto.
+class _ApiStatus extends StatefulWidget {
+  const _ApiStatus({required this.check});
+
+  final Future<bool> Function()? check;
+
+  @override
+  State<_ApiStatus> createState() => _ApiStatusState();
+}
+
+class _ApiStatusState extends State<_ApiStatus> {
+  _ApiState _state = _ApiState.verificando;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.check == null) return;
+    _verificar();
+    _timer = Timer.periodic(const Duration(seconds: 60), (_) => _verificar());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _verificar() async {
+    bool ok;
+    try {
+      ok = await widget.check!();
+    } catch (_) {
+      ok = false;
+    }
+    if (!mounted) return;
+    setState(() => _state = ok ? _ApiState.online : _ApiState.offline);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.check == null) return const SizedBox.shrink();
+
+    final Color color = switch (_state) {
+      _ApiState.online => const Color(0xFF34D399),
+      _ApiState.offline => Colors.redAccent,
+      _ApiState.verificando => AppColors.muted,
+    };
+    final String label = switch (_state) {
+      _ApiState.online => 'STATUS: ONLINE',
+      _ApiState.offline => 'STATUS: OFFLINE',
+      _ApiState.verificando => 'VERIFICANDO...',
+    };
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.circle, size: 8, color: color),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            letterSpacing: 1.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.muted,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Avatar com as iniciais da pessoa logada e menu (nome, e-mail, Sair).
+class _UserMenu extends StatelessWidget {
+  const _UserMenu({required this.user, required this.onLogout});
+
+  final AuthUser user;
+  final VoidCallback onLogout;
+
+  String get _initials {
+    final parts = user.name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) {
+      return user.email.isEmpty ? '?' : user.email[0].toUpperCase();
+    }
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts.first[0] + parts.last[0]).toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      tooltip: 'Conta',
+      offset: const Offset(0, 48),
+      color: AppColors.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      onSelected: (value) {
+        if (value == 'sair') onLogout();
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          enabled: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                user.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                user.email,
+                style: const TextStyle(fontSize: 12, color: AppColors.muted),
+              ),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'sair',
+          child: Row(
+            children: [
+              Icon(Icons.logout, size: 18, color: AppColors.redGlow),
+              SizedBox(width: 10),
+              Text('Sair'),
+            ],
+          ),
+        ),
+      ],
+      child: CircleAvatar(
+        radius: 18,
+        backgroundColor: AppColors.card2,
+        child: Text(
+          _initials,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: AppColors.redGlow,
+          ),
+        ),
       ),
     );
   }
