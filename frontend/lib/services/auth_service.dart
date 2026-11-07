@@ -1,7 +1,9 @@
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api_client.dart';
 import '../core/app_exception.dart';
+import '../core/google_config.dart';
 
 /// Usuário autenticado (dados mínimos devolvidos por `POST /auth/login`).
 class AuthUser {
@@ -44,6 +46,7 @@ class ApiAuthService implements AuthService {
   static const _tokenKey = 'auth_token';
 
   final ApiClient _api;
+  bool _googleIniciado = false;
 
   @override
   Future<AuthUser> signInWithEmail(String email, String password) async {
@@ -60,10 +63,36 @@ class ApiAuthService implements AuthService {
     }
   }
 
-  /// A API ainda não tem login com Google.
+  /// Pede o id_token ao Google e troca por um token do painel em `POST /auth/google`.
+  /// Só entra quem está na lista fixa de admins no backend.
   @override
-  Future<AuthUser> signInWithGoogle() async =>
-      throw const AuthException('Entrar com o Google ainda não está disponível.');
+  Future<AuthUser> signInWithGoogle() async {
+    try {
+      if (!_googleIniciado) {
+        await GoogleSignIn.instance.initialize(clientId: googleClientId);
+        _googleIniciado = true;
+      }
+      final conta = await GoogleSignIn.instance.authenticate();
+      final idToken = conta.authentication.idToken;
+      if (idToken == null) {
+        throw const AuthException('Não foi possível obter a conta do Google.');
+      }
+      final corpo = await _api.postJson('/auth/google', {'id_token': idToken})
+          as Map<String, dynamic>;
+      final token = corpo['access_token'] as String;
+      _api.setToken(token);
+      await _salvarToken(token);
+      return _usuarioDe(corpo['usuario'] as Map<String, dynamic>);
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        throw const AuthException('Login com Google cancelado.');
+      }
+      throw const AuthException('Não foi possível entrar com o Google. Tente novamente.');
+    } on AppException catch (e) {
+      // A API responde 401 com "Conta Google não autorizada" (mensagem já pronta).
+      throw AuthException(e.message);
+    }
+  }
 
   @override
   Future<AuthUser?> restoreSession() async {
