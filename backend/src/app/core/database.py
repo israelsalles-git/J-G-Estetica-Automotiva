@@ -8,7 +8,13 @@ from app.core.config import settings
 engine = create_engine(
     settings.database_url,
     echo=settings.debug,
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    connect_args={
+        # Sem timeout, uma porta bloqueada deixa cada requisição pendurada.
+        "connect_timeout": 10,
+        # Compatível com o pooler em modo transação do Supabase (porta 6543).
+        "prepare_threshold": None,
+    },
 )
 
 SessionLocal = sessionmaker(
