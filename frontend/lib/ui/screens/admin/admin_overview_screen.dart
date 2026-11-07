@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/business_config.dart';
 import 'package:frontend/ui/screens/cliente/home_page.dart';
 import 'package:frontend/ui/screens/admin/panels/day_agenda_panel.dart';
 import 'package:frontend/ui/screens/admin/panels/photos_panel.dart';
@@ -74,8 +75,6 @@ class AdminOverviewScreen extends StatelessWidget {
   }
 }
 
-String _hh(int hour) => '${hour.toString().padLeft(2, '0')}:00';
-
 class _HeroCard extends StatelessWidget {
   const _HeroCard({required this.wide});
 
@@ -96,7 +95,8 @@ class _HeroCard extends StatelessWidget {
           children: [
             const AdminPill(label: 'CENTRO DE COMANDO'),
             Text(
-              'Turno ativo • ${_hh(kAdminOpenHour)} - ${_hh(kAdminCloseHour)}',
+              'Turno ativo • ${BusinessConfig.timeSlots.first} - '
+              '${BusinessConfig.timeSlots.last}',
               style: const TextStyle(fontSize: 12, color: AppColors.muted),
             ),
           ],

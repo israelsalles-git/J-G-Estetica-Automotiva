@@ -3,6 +3,8 @@ import 'package:frontend/core/api_client.dart';
 import 'package:frontend/providers/booking_provider.dart';
 import 'package:frontend/providers/catalog_provider.dart';
 import 'package:frontend/providers/works_provider.dart';
+import 'package:frontend/services/agenda_service.dart';
+import 'package:frontend/services/api_agenda_service.dart';
 import 'package:frontend/services/api_booking_repository.dart';
 import 'package:frontend/services/api_catalog_repository.dart';
 import 'package:frontend/services/api_works_repository.dart';
@@ -28,6 +30,8 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        // Agenda do painel (usada pela Agenda do dia e pela Liberação de Horários).
+        Provider<AgendaService>.value(value: ApiAgendaService(api)),
         ChangeNotifierProvider<CatalogProvider>.value(value: catalog),
         ChangeNotifierProvider<BookingProvider>(
           create: (_) => BookingProvider(

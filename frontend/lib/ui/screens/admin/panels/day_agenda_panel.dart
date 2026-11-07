@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:frontend/core/app_exception.dart';
+import 'package:frontend/core/formatar_duracao.dart';
 import 'package:frontend/models/agenda_appointment.dart';
 import 'package:frontend/services/agenda_service.dart';
 import 'package:frontend/ui/theme/app_theme.dart';
 import 'package:frontend/ui/widgets/admin/admin_ui.dart';
+import 'package:provider/provider.dart';
 
 const _weekdaysLong = [
   'Segunda-feira',
@@ -43,12 +46,7 @@ String _hhmm(DateTime d) => '${_two(d.hour)}:${_two(d.minute)}';
 /// Painel "Agenda do dia" (PNL-5): atendimentos do dia ordenados por horário,
 /// navegação entre dias e destaque do atendimento em andamento.
 class DayAgendaPanel extends StatefulWidget {
-  const DayAgendaPanel({
-    super.key,
-    this.service = const MockAgendaService(),
-  });
-
-  final AgendaService service;
+  const DayAgendaPanel({super.key});
 
   @override
   State<DayAgendaPanel> createState() => _DayAgendaPanelState();
@@ -92,7 +90,7 @@ class _DayAgendaPanelState extends State<DayAgendaPanel> {
   Future<void> _fetch() async {
     final request = ++_requestId;
     try {
-      final result = await widget.service.loadDay(_day);
+      final result = await context.read<AgendaService>().loadDay(_day);
       // Ignora respostas antigas se o usuário já trocou de dia.
       if (!mounted || request != _requestId) return;
       final sorted = [...result]..sort((a, b) => a.start.compareTo(b.start));
@@ -100,12 +98,15 @@ class _DayAgendaPanelState extends State<DayAgendaPanel> {
         _items = sorted;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted || request != _requestId) return;
       setState(() {
         _items = const [];
         _loading = false;
-        _error = 'Não foi possível carregar a agenda deste dia.';
+        _error = errorMessage(
+          e,
+          fallback: 'Não foi possível carregar a agenda deste dia.',
+        );
       });
     }
   }
@@ -485,7 +486,6 @@ class _AppointmentTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = status == AgendaStatus.emAndamento;
     final done = status == AgendaStatus.concluido;
-    final box = _two(item.box);
 
     return Opacity(
       opacity: done ? 0.6 : 1,
@@ -519,7 +519,7 @@ class _AppointmentTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.vehicle,
+                    item.customer,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -529,7 +529,7 @@ class _AppointmentTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${item.customer} • ${item.service}',
+                    item.service,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -546,7 +546,7 @@ class _AppointmentTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                AdminPill(label: 'BOX $box'),
+                AdminPill(label: formatarDuracao(item.duration)),
                 const SizedBox(height: 8),
                 _StatusBadge(status),
               ],

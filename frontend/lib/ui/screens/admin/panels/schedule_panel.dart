@@ -1,119 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/app_exception.dart';
+import 'package:frontend/core/business_config.dart';
+import 'package:frontend/core/formatar_duracao.dart';
+import 'package:frontend/models/agenda_appointment.dart';
+import 'package:frontend/services/agenda_service.dart';
 import 'package:frontend/ui/theme/app_theme.dart';
 import 'package:frontend/ui/widgets/admin/admin_ui.dart';
+import 'package:provider/provider.dart';
 
-// ---- Regras de funcionamento (iguais às do site do cliente) ----
-// Se o grupo mudar o expediente, basta ajustar estas constantes.
-const int kAdminOpenHour = 7;
-const int kAdminCloseHour = 18; // o último horário começa às 17:00
-const int kAdminLunchHour = 12;
-const Set<int> kAdminOpenWeekdays = {DateTime.saturday, DateTime.sunday};
+// Dias e horários vêm do BusinessConfig (a mesma fonte do site do cliente).
 
-enum AdminSlotState { livre, marcado, travado, fechado }
+enum AdminSlotState { livre, marcado }
 
-class AdminBooking {
-  const AdminBooking({
-    required this.vehicle,
-    required this.customer,
-    required this.service,
-    required this.box,
-  });
+String _two(int n) => n.toString().padLeft(2, '0');
 
-  final String vehicle;
-  final String customer;
-  final String service;
-  final int box;
-}
+String _hhmm(DateTime d) => '${_two(d.hour)}:${_two(d.minute)}';
 
-class AdminTimeSlot {
-  const AdminTimeSlot(this.hour, this.state, {this.detail, this.booking});
-
-  final int hour;
-  final AdminSlotState state;
-  final String? detail;
-  final AdminBooking? booking;
-
-  String get hourLabel => '${hour.toString().padLeft(2, '0')}:00';
-
-  AdminTimeSlot withState(AdminSlotState newState, {String? detail}) {
-    return AdminTimeSlot(hour, newState, detail: detail, booking: booking);
-  }
-}
-
-// ---- Dados de exemplo (trocar pela API depois) ----
-// A chave externa é o índice do dia (0 = primeiro dia da lista de abas).
-const Map<int, Map<int, AdminBooking>> _demoBookings = {
-  0: {
-    8: AdminBooking(
-      vehicle: 'BMW 320i',
-      customer: 'Ana P.',
-      service: 'Lavagem de Carro + Cera',
-      box: 3,
-    ),
-    9: AdminBooking(
-      vehicle: 'Civic',
-      customer: 'Marcos T.',
-      service: 'Lavagem de Carro',
-      box: 4,
-    ),
-    14: AdminBooking(
-      vehicle: 'Ducati Panigale V4',
-      customer: 'Roberto M.',
-      service: 'Lavagem Detalhada de Moto',
-      box: 2,
-    ),
-    15: AdminBooking(
-      vehicle: 'Porsche 911 Carrera GTS',
-      customer: 'Lucas S.',
-      service: 'Lavagem de Carro + Cera',
-      box: 1,
-    ),
-  },
-  1: {
-    9: AdminBooking(
-      vehicle: 'Hilux',
-      customer: 'Paulo R.',
-      service: 'Lavagem de Carro',
-      box: 1,
-    ),
-    10: AdminBooking(
-      vehicle: 'CB 500',
-      customer: 'Joana L.',
-      service: 'Lavagem de Moto',
-      box: 2,
-    ),
-  },
-};
-
-List<DateTime> _nextOpenDays(int count) {
-  final today = DateTime.now();
-  final result = <DateTime>[];
-  var offset = 0;
-  while (result.length < count && offset < 60) {
-    final date = DateTime(today.year, today.month, today.day + offset);
-    if (kAdminOpenWeekdays.contains(date.weekday)) result.add(date);
-    offset++;
-  }
-  return result;
-}
-
-List<AdminTimeSlot> _buildDay(int dayIndex) {
-  final bookings = _demoBookings[dayIndex] ?? const <int, AdminBooking>{};
+/// Próximos dias em que a empresa atende (hoje inclusive, se for dia de atendimento).
+List<DateTime> _proximosDiasDeAtendimento(int quantidade) {
+  final hoje = DateTime.now();
+  final dias = BusinessConfig.weekdays.values.toSet();
   return [
-    for (var h = kAdminOpenHour; h < kAdminCloseHour; h++)
-      if (h == kAdminLunchHour)
-        AdminTimeSlot(h, AdminSlotState.fechado, detail: 'Almoço')
-      else if (bookings.containsKey(h))
-        AdminTimeSlot(h, AdminSlotState.marcado, booking: bookings[h])
-      else if (dayIndex == 0 && h == 16)
-        AdminTimeSlot(h, AdminSlotState.travado, detail: 'pelo gerente')
-      else
-        AdminTimeSlot(h, AdminSlotState.livre),
-  ];
+    for (var i = 0; i < 60; i++) DateTime(hoje.year, hoje.month, hoje.day + i),
+  ].where((d) => dias.contains(d.weekday)).take(quantidade).toList();
+}
+
+/// Atendimento que ocupa o início do horário "HH:mm" no [dia], ou null se estiver livre.
+/// Um serviço de 90 min que começa às 09:00 ocupa o bloco das 09:00 e o das 10:00.
+AgendaAppointment? _ocupante(
+  DateTime dia,
+  String horario,
+  List<AgendaAppointment> itens,
+) {
+  final p = horario.split(':');
+  final inicio = DateTime(dia.year, dia.month, dia.day, int.parse(p[0]), int.parse(p[1]));
+  for (final a in itens) {
+    if (!inicio.isBefore(a.start) && inicio.isBefore(a.end)) return a;
+  }
+  return null;
 }
 
 /// Painel "Liberação de Horários": abas de dias, grade de horários e
-/// lista dos próximos veículos confirmados.
+/// lista dos atendimentos confirmados. Tudo vem da API (AgendaService).
 class SchedulePanel extends StatefulWidget {
   const SchedulePanel({super.key});
 
@@ -125,14 +53,51 @@ class _SchedulePanelState extends State<SchedulePanel> {
   static const _weekdays = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
 
   late final List<DateTime> _dates;
-  late final List<List<AdminTimeSlot>> _days;
   int _selectedDay = 0;
+  List<AgendaAppointment> _itens = const [];
+  bool _carregando = true;
+  String? _erro;
+  int _requestId = 0;
 
   @override
   void initState() {
     super.initState();
-    _dates = _nextOpenDays(4);
-    _days = List.generate(_dates.length, _buildDay);
+    _dates = _proximosDiasDeAtendimento(4);
+    _carregar();
+  }
+
+  /// Troca de dia (ou tenta de novo) e busca na API.
+  void _abrirDia(int index) {
+    setState(() {
+      _selectedDay = index;
+      _carregando = true;
+      _erro = null;
+    });
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    final pedido = ++_requestId;
+    try {
+      final itens =
+          await context.read<AgendaService>().loadDay(_dates[_selectedDay]);
+      // Ignora respostas antigas se a pessoa já trocou de dia.
+      if (!mounted || pedido != _requestId) return;
+      setState(() {
+        _itens = [...itens]..sort((a, b) => a.start.compareTo(b.start));
+        _carregando = false;
+      });
+    } catch (e) {
+      if (!mounted || pedido != _requestId) return;
+      setState(() {
+        _itens = const [];
+        _carregando = false;
+        _erro = errorMessage(
+          e,
+          fallback: 'Não foi possível carregar os horários deste dia.',
+        );
+      });
+    }
   }
 
   String _dayLabel(int i) {
@@ -143,38 +108,19 @@ class _SchedulePanelState extends State<SchedulePanel> {
         date.month == now.month &&
         date.day == now.day;
     if (isToday) return 'HOJE ($weekday)';
-    final day = date.day.toString().padLeft(2, '0');
-    return '$weekday ($day)';
+    return '$weekday (${_two(date.day)})';
   }
 
-  void _onSlotTap(int index) {
-    final slot = _days[_selectedDay][index];
-    switch (slot.state) {
-      case AdminSlotState.livre:
-        setState(() {
-          _days[_selectedDay][index] =
-              slot.withState(AdminSlotState.travado, detail: 'por você');
-        });
-      case AdminSlotState.travado:
-        setState(() {
-          _days[_selectedDay][index] = slot.withState(AdminSlotState.livre);
-        });
-      case AdminSlotState.marcado:
-        final vehicle = slot.booking?.vehicle ?? '';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Horário já agendado: $vehicle')),
-        );
-      case AdminSlotState.fechado:
-        break;
-    }
+  void _onSlotTap(AgendaAppointment? ocupante) {
+    // Horário livre: não faz nada (a API ainda não tem bloqueio de horário).
+    if (ocupante == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Horário já agendado: ${ocupante.customer}')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final slots = _days[_selectedDay];
-    final booked =
-        slots.where((s) => s.state == AdminSlotState.marcado).toList();
-
     return AdminCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,52 +128,84 @@ class _SchedulePanelState extends State<SchedulePanel> {
           const AdminPanelHeader(
             icon: Icons.event_available_outlined,
             title: 'Liberação de Horários',
-            subtitle: 'Toque nos blocos para trancar ou liberar vagas.',
+            subtitle: 'Horários livres e agendados de cada dia.',
           ),
           const SizedBox(height: 20),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (var i = 0; i < _days.length; i++)
+              for (var i = 0; i < _dates.length; i++)
                 _DayChip(
                   label: _dayLabel(i),
                   selected: i == _selectedDay,
-                  onTap: () => setState(() => _selectedDay = i),
+                  onTap: () => _abrirDia(i),
                 ),
             ],
           ),
           const SizedBox(height: 24),
-          const AdminLabel('GRADE DIÁRIA DE ATENDIMENTO (BOXES 1 A 4)'),
+          const AdminLabel('GRADE DIÁRIA (UM ATENDIMENTO POR VEZ)'),
           const SizedBox(height: 10),
           const _Legend(),
           const SizedBox(height: 14),
-          GridView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 130,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 1.1,
-            ),
-            children: [
-              for (var i = 0; i < slots.length; i++)
-                _SlotTile(slot: slots[i], onTap: () => _onSlotTap(i)),
-            ],
-          ),
-          const SizedBox(height: 28),
-          const AdminLabel('PRÓXIMOS VEÍCULOS CONFIRMADOS'),
-          const SizedBox(height: 10),
-          if (booked.isEmpty)
-            const Text(
-              'Nenhum veículo confirmado para este dia.',
-              style: TextStyle(color: AppColors.muted),
-            )
-          else
-            for (final slot in booked) _BookingRow(slot: slot),
+          _buildBody(),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_carregando) {
+      return const SizedBox(
+        height: 160,
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.redGlow),
+        ),
+      );
+    }
+    if (_erro != null) {
+      return _MessageBox(
+        message: _erro!,
+        action: AdminOutlineButton(
+          label: 'Tentar novamente',
+          onPressed: () => _abrirDia(_selectedDay),
+        ),
+      );
+    }
+
+    final dia = _dates[_selectedDay];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GridView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 130,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 1.1,
+          ),
+          children: [
+            for (final horario in BusinessConfig.timeSlots)
+              _SlotTile(
+                horario: horario,
+                ocupante: _ocupante(dia, horario, _itens),
+                onTap: _onSlotTap,
+              ),
+          ],
+        ),
+        const SizedBox(height: 28),
+        const AdminLabel('PRÓXIMOS ATENDIMENTOS CONFIRMADOS'),
+        const SizedBox(height: 10),
+        if (_itens.isEmpty)
+          const Text(
+            'Nenhum atendimento confirmado para este dia.',
+            style: TextStyle(color: AppColors.muted),
+          )
+        else
+          for (final item in _itens) _BookingRow(item: item),
+      ],
     );
   }
 }
@@ -295,59 +273,82 @@ class _Legend extends StatelessWidget {
       children: [
         _item('Livre', AppColors.redGlow),
         _item('Marcado', AppColors.redDark),
-        _item('Travado', AppColors.muted),
       ],
     );
   }
 }
 
-class _SlotTile extends StatelessWidget {
-  const _SlotTile({required this.slot, required this.onTap});
+class _MessageBox extends StatelessWidget {
+  const _MessageBox({required this.message, this.action});
 
-  final AdminTimeSlot slot;
-  final VoidCallback onTap;
+  final String message;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
-    final closed = slot.state == AdminSlotState.fechado;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.bgAlt,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.error_outline, size: 32, color: AppColors.muted),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.muted),
+          ),
+          if (action != null) ...[
+            const SizedBox(height: 16),
+            action!,
+          ],
+        ],
+      ),
+    );
+  }
+}
 
-    final Color tint = switch (slot.state) {
+class _SlotTile extends StatelessWidget {
+  const _SlotTile({
+    required this.horario,
+    required this.ocupante,
+    required this.onTap,
+  });
+
+  final String horario;
+  final AgendaAppointment? ocupante;
+  final ValueChanged<AgendaAppointment?> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final state =
+        ocupante == null ? AdminSlotState.livre : AdminSlotState.marcado;
+
+    final Color tint = switch (state) {
       AdminSlotState.livre => AppColors.redGlow,
       AdminSlotState.marcado => AppColors.redDark,
-      AdminSlotState.travado => AppColors.muted,
-      AdminSlotState.fechado => AppColors.muted,
     };
-
-    final Color background = switch (slot.state) {
+    final Color background = switch (state) {
       AdminSlotState.livre => AppColors.redGlow.withValues(alpha: 0.08),
       AdminSlotState.marcado => AppColors.redDark.withValues(alpha: 0.25),
-      AdminSlotState.travado => AppColors.card2,
-      AdminSlotState.fechado => AppColors.bgAlt,
     };
-
-    final Color borderColor = switch (slot.state) {
+    final Color borderColor = switch (state) {
       AdminSlotState.livre => AppColors.redGlow.withValues(alpha: 0.35),
       AdminSlotState.marcado => AppColors.redDark.withValues(alpha: 0.8),
-      AdminSlotState.travado => AppColors.border,
-      AdminSlotState.fechado => AppColors.border,
     };
-
-    final String label = switch (slot.state) {
+    final String label = switch (state) {
       AdminSlotState.livre => 'LIVRE',
       AdminSlotState.marcado => 'MARCADO',
-      AdminSlotState.travado => 'TRAVADO',
-      AdminSlotState.fechado => (slot.detail ?? 'FECHADO').toUpperCase(),
     };
-
-    final String? sub = switch (slot.state) {
-      AdminSlotState.livre => 'toque p/ trancar',
-      AdminSlotState.marcado => slot.booking?.vehicle.split(' ').first,
-      AdminSlotState.travado => slot.detail,
-      AdminSlotState.fechado => null,
-    };
+    final String? sub = ocupante?.customer.split(' ').first;
 
     return AdminTapSurface(
-      onTap: closed ? null : onTap,
+      onTap: () => onTap(ocupante),
       color: background,
       borderColor: borderColor,
       radius: 14,
@@ -359,11 +360,11 @@ class _SlotTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                slot.hourLabel,
-                style: TextStyle(
+                horario,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
-                  color: closed ? AppColors.muted : Colors.white,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 2),
@@ -390,15 +391,12 @@ class _SlotTile extends StatelessWidget {
 }
 
 class _BookingRow extends StatelessWidget {
-  const _BookingRow({required this.slot});
+  const _BookingRow({required this.item});
 
-  final AdminTimeSlot slot;
+  final AgendaAppointment item;
 
   @override
   Widget build(BuildContext context) {
-    final booking = slot.booking!;
-    final box = booking.box.toString().padLeft(2, '0');
-
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -416,7 +414,7 @@ class _BookingRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              slot.hourLabel,
+              _hhmm(item.start),
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -430,13 +428,13 @@ class _BookingRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  booking.vehicle,
+                  item.customer,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 Text(
-                  '${booking.customer} • ${booking.service}',
+                  item.service,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12, color: AppColors.muted),
@@ -445,7 +443,7 @@ class _BookingRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          AdminPill(label: 'BOX $box'),
+          AdminPill(label: formatarDuracao(item.duration)),
         ],
       ),
     );
