@@ -15,8 +15,8 @@ import 'package:frontend/ui/screens/auth/login_screen.dart';
 import 'package:frontend/ui/theme/app_theme.dart';
 
 /// Ponto de entrada só do painel admin (não mexe no main.dart do cliente).
-/// Rode, de dentro da pasta frontend:
-///   flutter run -d chrome -t lib/main_admin.dart
+/// Rode, de dentro da pasta frontend (porta fixa: precisa estar cadastrada no Google Cloud):
+///   flutter run -d chrome -t lib/main_admin.dart --web-port=5000
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
