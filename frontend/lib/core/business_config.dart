@@ -6,7 +6,7 @@ class BusinessConfig {
   static const name = 'Tal da Estética Automotiva';
 
   /// Logo (PNG com fundo transparente). Mesmo arquivo que o pubspec.yaml já declara.
-  static const logoAsset = 'assents/ClientPageImages/Logo.png';
+  static const logoAsset = 'assets/images/logo.png';
 
   /// Atendimento somente aos fins de semana.
   static const days = ['Sábado', 'Domingo'];

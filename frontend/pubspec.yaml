@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.3.0 <4.0.0'
+  sdk: '>=3.6.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -23,6 +23,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assents/ClientPageImages/Logo.png
-    - assents/ClientPageImages/teste.jpeg
     - assets/images/
+  fonts:
+    - family: Knewave
+      fonts:
+        - asset: assets/fonts/Knewave-Regular.ttf
