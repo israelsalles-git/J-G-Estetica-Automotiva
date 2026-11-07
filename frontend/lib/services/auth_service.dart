@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,7 +28,12 @@ class AuthException implements Exception {
 /// Contrato de autenticação. A tela de login só conhece esta interface.
 abstract class AuthService {
   Future<AuthUser> signInWithEmail(String email, String password);
-  Future<AuthUser> signInWithGoogle();
+
+  /// Prepara o login com Google (uma vez). Na Web, o login começa pelo botão oficial.
+  Future<void> iniciarGoogle();
+
+  /// Usuários que entraram pelo botão do Google (ou AuthException em caso de erro).
+  Stream<AuthUser> get googleLogins;
 
   /// Lê o token salvo, confere na API (`GET /auth/me`) e devolve o usuário.
   /// Devolve `null` se não há token ou se ele não vale mais (e já o apaga).
@@ -47,6 +54,10 @@ class ApiAuthService implements AuthService {
 
   final ApiClient _api;
   bool _googleIniciado = false;
+  final _googleLogins = StreamController<AuthUser>.broadcast();
+
+  @override
+  Stream<AuthUser> get googleLogins => _googleLogins.stream;
 
   @override
   Future<AuthUser> signInWithEmail(String email, String password) async {
@@ -63,36 +74,47 @@ class ApiAuthService implements AuthService {
     }
   }
 
-  /// Pede o id_token ao Google e troca por um token do painel em `POST /auth/google`.
-  /// Só entra quem está na lista fixa de admins no backend.
+  /// Prepara o Google (uma vez) e escuta os eventos de login. Na Web, o `authenticate()`
+  /// não é suportado: o login começa pelo botão oficial (`renderButton`) na tela.
   @override
-  Future<AuthUser> signInWithGoogle() async {
-    try {
-      if (!_googleIniciado) {
-        await GoogleSignIn.instance.initialize(clientId: googleClientId);
-        _googleIniciado = true;
-      }
-      final conta = await GoogleSignIn.instance.authenticate();
-      final idToken = conta.authentication.idToken;
-      if (idToken == null) {
-        throw const AuthException('Não foi possível obter a conta do Google.');
-      }
-      final corpo = await _api.postJson('/auth/google', {'id_token': idToken})
-          as Map<String, dynamic>;
-      final token = corpo['access_token'] as String;
-      _api.setToken(token);
-      await _salvarToken(token);
-      return _usuarioDe(corpo['usuario'] as Map<String, dynamic>);
-    } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) {
-        throw const AuthException('Login com Google cancelado.');
-      }
-      throw const AuthException('Não foi possível entrar com o Google. Tente novamente.');
-    } on AppException catch (e) {
-      // A API responde 401 com "Conta Google não autorizada" (mensagem já pronta).
-      throw AuthException(e.message);
-    }
+  Future<void> iniciarGoogle() async {
+    if (_googleIniciado) return;
+    _googleIniciado = true;
+    await GoogleSignIn.instance.initialize(clientId: googleClientId);
+    GoogleSignIn.instance.authenticationEvents.listen(
+      (evento) async {
+        if (evento is! GoogleSignInAuthenticationEventSignIn) return;
+        try {
+          _googleLogins.add(await _entrarComIdToken(evento.user.authentication.idToken));
+        } catch (e) {
+          _googleLogins.addError(_erroGoogle(e));
+        }
+      },
+      onError: (Object e) => _googleLogins.addError(_erroGoogle(e)),
+    );
   }
+
+  /// Troca o id_token do Google por um token do painel em `POST /auth/google`.
+  /// Só entra quem está na lista fixa de admins no backend.
+  Future<AuthUser> _entrarComIdToken(String? idToken) async {
+    if (idToken == null) {
+      throw const AuthException('Não foi possível obter a conta do Google.');
+    }
+    final corpo = await _api.postJson('/auth/google', {'id_token': idToken})
+        as Map<String, dynamic>;
+    final token = corpo['access_token'] as String;
+    _api.setToken(token);
+    await _salvarToken(token);
+    return _usuarioDe(corpo['usuario'] as Map<String, dynamic>);
+  }
+
+  AuthException _erroGoogle(Object e) => switch (e) {
+        AuthException() => e,
+        AppException() => AuthException(e.message), // 401 "Conta Google não autorizada"
+        GoogleSignInException(code: GoogleSignInExceptionCode.canceled) =>
+          const AuthException('Login com Google cancelado.'),
+        _ => const AuthException('Não foi possível entrar com o Google. Tente novamente.'),
+      };
 
   @override
   Future<AuthUser?> restoreSession() async {
@@ -121,6 +143,11 @@ class ApiAuthService implements AuthService {
   @override
   Future<void> signOut() async {
     _api.setToken(null);
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {
+      // Google não iniciado ou indisponível: segue o logout local.
+    }
     try {
       await (await SharedPreferences.getInstance()).remove(_tokenKey);
     } catch (_) {

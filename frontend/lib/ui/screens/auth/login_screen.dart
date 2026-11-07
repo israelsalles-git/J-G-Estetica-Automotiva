@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/services/auth_service.dart';
+import 'package:google_sign_in_web/web_only.dart' as gweb;
 import 'package:frontend/ui/theme/app_theme.dart';
 import 'package:frontend/ui/widgets/app_container.dart';
 
@@ -27,13 +30,40 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscure = true;
   bool _busyEmail = false;
-  bool _busyGoogle = false;
+  bool _googlePronto = false;
   String? _error;
+  StreamSubscription<AuthUser>? _googleSub;
 
-  bool get _busy => _busyEmail || _busyGoogle;
+  bool get _busy => _busyEmail;
+
+  @override
+  void initState() {
+    super.initState();
+    _googleSub = widget.authService.googleLogins.listen(
+      (user) {
+        if (mounted) widget.onLoggedIn(user);
+      },
+      onError: (Object e) {
+        if (!mounted) return;
+        setState(() {
+          _error = e is AuthException
+              ? e.message
+              : 'Não foi possível entrar com o Google.';
+        });
+      },
+    );
+    widget.authService.iniciarGoogle().then((_) {
+      if (mounted) setState(() => _googlePronto = true);
+    }).catchError((_) {
+      if (mounted) {
+        setState(() => _error = 'Login com Google indisponível no momento.');
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _googleSub?.cancel();
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -75,31 +105,6 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _error = 'Não foi possível entrar. Tente novamente.');
     } finally {
       if (mounted) setState(() => _busyEmail = false);
-    }
-  }
-
-  Future<void> _signInGoogle() async {
-    if (_busy) return;
-    FocusScope.of(context).unfocus();
-
-    setState(() {
-      _busyGoogle = true;
-      _error = null;
-    });
-    try {
-      final user = await widget.authService.signInWithGoogle();
-      if (!mounted) return;
-      widget.onLoggedIn(user);
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e.message);
-    } catch (_) {
-      if (!mounted) return;
-      setState(
-        () => _error = 'Não foi possível entrar com o Google. Tente novamente.',
-      );
-    } finally {
-      if (mounted) setState(() => _busyGoogle = false);
     }
   }
 
@@ -239,9 +244,25 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
               const _OrDivider(),
               const SizedBox(height: 20),
-              _GoogleButton(
-                loading: _busyGoogle,
-                onPressed: _busy ? null : _signInGoogle,
+              SizedBox(
+                height: 52,
+                child: Center(
+                  child: _googlePronto
+                      ? gweb.renderButton(
+                          configuration: gweb.GSIButtonConfiguration(
+                            theme: gweb.GSIButtonTheme.filledBlack,
+                            size: gweb.GSIButtonSize.large,
+                            text: gweb.GSIButtonText.continueWith,
+                            shape: gweb.GSIButtonShape.pill,
+                            locale: 'pt-BR',
+                            minimumWidth: 376,
+                          ),
+                        )
+                      : const CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: AppColors.redGlow,
+                        ),
+                ),
               ),
             ],
           ),
@@ -422,78 +443,6 @@ class _OrDivider extends StatelessWidget {
         ),
         Expanded(child: Divider(color: AppColors.border)),
       ],
-    );
-  }
-}
-
-class _GoogleButton extends StatelessWidget {
-  const _GoogleButton({required this.loading, required this.onPressed});
-
-  final bool loading;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 52,
-      child: OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: AppColors.card2,
-          side: const BorderSide(color: AppColors.border),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        onPressed: onPressed,
-        child: loading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: AppColors.redGlow,
-                ),
-              )
-            : const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _GoogleBadge(),
-                  SizedBox(width: 12),
-                  Text(
-                    'Continuar com o Google',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-}
-
-/// Selo simples com a letra G (não é o logotipo oficial do Google).
-class _GoogleBadge extends StatelessWidget {
-  const _GoogleBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-      ),
-      child: const Center(
-        child: Text(
-          'G',
-          style: TextStyle(
-            color: Color(0xFF4285F4),
-            fontWeight: FontWeight.w900,
-            fontSize: 14,
-          ),
-        ),
-      ),
     );
   }
 }
