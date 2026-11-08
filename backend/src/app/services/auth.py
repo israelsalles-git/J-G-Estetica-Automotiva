@@ -51,10 +51,13 @@ def login_google(db: Session, id_token_str: str) -> TokenResponse:
 def _verificar_id_token(id_token_str: str) -> dict:
     if not settings.google_client_id:
         raise CredenciaisInvalidasError("Login com Google não está configurado")
-    # Import tardio: as bibliotecas do Google só são exigidas quando o login está ligado.
-    from google.auth.exceptions import TransportError
-    from google.auth.transport import requests as google_requests
-    from google.oauth2 import id_token
+    # Import tardio: o módulo sobe mesmo sem as bibliotecas; a falta vira erro claro (não 500).
+    try:
+        from google.auth.exceptions import TransportError
+        from google.auth.transport import requests as google_requests
+        from google.oauth2 import id_token
+    except ImportError as exc:
+        raise IntegracaoError("Login com Google indisponível: dependência não instalada") from exc
 
     try:
         return id_token.verify_oauth2_token(
