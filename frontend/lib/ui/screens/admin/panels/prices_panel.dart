@@ -1,39 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/load_status.dart';
+import 'package:frontend/models/service.dart';
+import 'package:frontend/providers/admin_catalog_provider.dart';
+import 'package:frontend/providers/catalog_provider.dart';
 import 'package:frontend/ui/theme/app_theme.dart';
 import 'package:frontend/ui/widgets/admin/admin_ui.dart';
 import 'package:frontend/ui/widgets/gradient_button.dart';
-
-class AdminService {
-  const AdminService({
-    required this.name,
-    required this.description,
-    required this.category,
-    required this.duration,
-    required this.price,
-    this.active = true,
-  });
-
-  final String name;
-  final String description;
-  final String category;
-  final String duration;
-  final double price;
-  final bool active;
-
-  String get priceLabel =>
-      'R\$ ${price.toStringAsFixed(2).replaceAll('.', ',')}';
-
-  AdminService copyWith({double? price, bool? active}) {
-    return AdminService(
-      name: name,
-      description: description,
-      category: category,
-      duration: duration,
-      price: price ?? this.price,
-      active: active ?? this.active,
-    );
-  }
-}
+import 'package:provider/provider.dart';
 
 // Proporção de cada coluna (cabeçalho e linhas usam os mesmos valores).
 const _flexName = 5;
@@ -43,8 +16,14 @@ const _flexPrice = 2;
 const _flexStatus = 2;
 const _flexAction = 4;
 
-/// Painel "Tabela de Preços e Catálogo": busca, adicionar, ajustar preço
-/// e pausar/reativar serviços. Dados de exemplo (trocar pela API depois).
+const _categorias = ['Carro', 'Moto'];
+
+/// "R$ 70,00" (com vírgula, como o painel sempre mostrou).
+String _preco(double valor) =>
+    'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
+
+/// Painel "Tabela de Preços e Catálogo": lista de verdade (inclusive os
+/// serviços pausados), com adicionar, ajustar, pausar e reativar pela API.
 class PricesPanel extends StatefulWidget {
   const PricesPanel({super.key});
 
@@ -53,79 +32,79 @@ class PricesPanel extends StatefulWidget {
 }
 
 class _PricesPanelState extends State<PricesPanel> {
-  final List<AdminService> _services = [
-    const AdminService(
-      name: 'Lavagem de Carro',
-      description: 'Snow foam, limpeza de caixas de roda e aspiração interna',
-      category: 'CARROS',
-      duration: '40 min',
-      price: 70,
-    ),
-    const AdminService(
-      name: 'Lavagem de Carro + Cera',
-      description: 'Cera nobre de carnaúba com acabamento aveludado',
-      category: 'CARROS',
-      duration: '1h',
-      price: 80,
-    ),
-    const AdminService(
-      name: 'Lavagem de Moto',
-      description: 'Lavagem técnica sem agredir partes elétricas',
-      category: 'MOTOS',
-      duration: '40 min',
-      price: 50,
-    ),
-    const AdminService(
-      name: 'Lavagem de Moto + Cera',
-      description: 'Cera protetora nas carenagens, tanque e plásticos',
-      category: 'MOTOS',
-      duration: '1h',
-      price: 60,
-    ),
-    const AdminService(
-      name: 'Lavagem Detalhada de Moto',
-      description: 'Desmontagem superficial, lubrificação e proteção térmica',
-      category: 'MOTOS',
-      duration: '1h30',
-      price: 150,
-    ),
-  ];
-
   String _query = '';
 
+  @override
+  void initState() {
+    super.initState();
+    // Depois do primeiro desenho, para não avisar listeners no meio do build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AdminCatalogProvider>().load();
+    });
+  }
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  /// Mostra o resultado e, se deu certo, atualiza também o catálogo do site.
+  void _depoisDaAcao(bool ok, String sucesso, AdminCatalogProvider admin,
+      CatalogProvider site) {
+    if (!mounted) return;
+    if (ok) {
+      site.load();
+      _snack(sucesso);
+    } else {
+      _snack(admin.actionError ?? 'Não foi possível concluir a ação.');
+    }
+  }
+
   Future<void> _add() async {
-    final result = await showDialog<AdminService>(
+    final admin = context.read<AdminCatalogProvider>();
+    final site = context.read<CatalogProvider>();
+    final dados = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => const _ServiceDialog(),
     );
-    if (result == null || !mounted) return;
-    setState(() => _services.insert(0, result));
+    if (dados == null) return;
+    final ok = await admin.add(dados);
+    _depoisDaAcao(ok, 'Serviço adicionado.', admin, site);
   }
 
-  Future<void> _editPrice(AdminService item) async {
-    final result = await showDialog<AdminService>(
+  Future<void> _edit(Service item) async {
+    final admin = context.read<AdminCatalogProvider>();
+    final site = context.read<CatalogProvider>();
+    final dados = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => _ServiceDialog(initial: item),
     );
-    if (result == null || !mounted) return;
-    setState(() {
-      final index = _services.indexOf(item);
-      if (index != -1) _services[index] = result;
-    });
+    if (dados == null) return;
+    final ok = await admin.update(item.id, dados);
+    _depoisDaAcao(ok, 'Serviço atualizado.', admin, site);
   }
 
-  void _toggleActive(AdminService item) {
-    setState(() {
-      final index = _services.indexOf(item);
-      if (index != -1) _services[index] = item.copyWith(active: !item.active);
-    });
+  Future<void> _toggle(Service item) async {
+    final admin = context.read<AdminCatalogProvider>();
+    final site = context.read<CatalogProvider>();
+    final ok =
+        item.active ? await admin.pause(item.id) : await admin.reactivate(item.id);
+    _depoisDaAcao(
+      ok,
+      item.active ? 'Serviço pausado.' : 'Serviço reativado.',
+      admin,
+      site,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final admin = context.watch<AdminCatalogProvider>();
     final query = _query.trim().toLowerCase();
-    final filtered =
-        _services.where((s) => s.name.toLowerCase().contains(query)).toList();
+    final filtered = admin.services
+        .where((s) => s.name.toLowerCase().contains(query))
+        .toList();
 
     return AdminCard(
       child: Column(
@@ -154,47 +133,92 @@ class _PricesPanelState extends State<PricesPanel> {
               ),
               GradientButton(
                 label: '+ Adicionar serviço',
-                onTap: _add,
+                onTap: admin.isSaving ? () {} : _add,
                 small: true,
               ),
+              if (admin.isSaving)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: AppColors.redGlow,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 20),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final tableWidth =
-                  constraints.maxWidth < 820 ? 820.0 : constraints.maxWidth;
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: tableWidth,
-                  child: Column(
-                    children: [
-                      const _HeaderRow(),
-                      const Divider(height: 1, color: AppColors.border),
-                      if (filtered.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(32),
-                          child: Text(
-                            'Nenhum serviço encontrado',
-                            style: TextStyle(color: AppColors.muted),
-                          ),
-                        )
-                      else
-                        for (final item in filtered)
-                          _ServiceRow(
-                            item: item,
-                            onEdit: () => _editPrice(item),
-                            onToggle: () => _toggleActive(item),
-                          ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+          _buildBody(admin, filtered),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody(AdminCatalogProvider admin, List<Service> filtered) {
+    if (admin.status == LoadStatus.idle || admin.status == LoadStatus.loading) {
+      return const SizedBox(
+        height: 160,
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.redGlow),
+        ),
+      );
+    }
+    if (admin.status == LoadStatus.error) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            admin.error ?? 'Não foi possível carregar os serviços.',
+            style: const TextStyle(color: AppColors.muted),
+          ),
+          const SizedBox(height: 12),
+          AdminOutlineButton(label: 'Tentar novamente', onPressed: admin.load),
+        ],
+      );
+    }
+    if (admin.services.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Text(
+          'Nenhum serviço cadastrado ainda.',
+          style: TextStyle(color: AppColors.muted),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tableWidth =
+            constraints.maxWidth < 820 ? 820.0 : constraints.maxWidth;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: tableWidth,
+            child: Column(
+              children: [
+                const _HeaderRow(),
+                const Divider(height: 1, color: AppColors.border),
+                if (filtered.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Text(
+                      'Nenhum serviço encontrado',
+                      style: TextStyle(color: AppColors.muted),
+                    ),
+                  )
+                else
+                  for (final item in filtered)
+                    _ServiceRow(
+                      item: item,
+                      busy: admin.isSaving,
+                      onEdit: () => _edit(item),
+                      onToggle: () => _toggle(item),
+                    ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -223,11 +247,13 @@ class _HeaderRow extends StatelessWidget {
 class _ServiceRow extends StatelessWidget {
   const _ServiceRow({
     required this.item,
+    required this.busy,
     required this.onEdit,
     required this.onToggle,
   });
 
-  final AdminService item;
+  final Service item;
+  final bool busy;
   final VoidCallback onEdit;
   final VoidCallback onToggle;
 
@@ -235,93 +261,106 @@ class _ServiceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = item.active ? AppColors.redGlow : AppColors.muted;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: _flexName,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item.description,
-                  style: const TextStyle(fontSize: 12, color: AppColors.muted),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: _flexCategory,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: AdminPill(label: item.category),
-            ),
-          ),
-          Expanded(flex: _flexTime, child: Text(item.duration)),
-          Expanded(
-            flex: _flexPrice,
-            child: Text(
-              item.priceLabel,
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-            ),
-          ),
-          Expanded(
-            flex: _flexStatus,
-            child: Row(
-              children: [
-                Icon(Icons.circle, size: 8, color: statusColor),
-                const SizedBox(width: 8),
-                Text(
-                  item.active ? 'ATIVO' : 'PAUSADO',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: statusColor,
+    return Opacity(
+      opacity: item.active ? 1 : 0.65,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.border)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              flex: _flexName,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
-                ),
-              ],
+                  if (item.description.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      item.description,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            flex: _flexAction,
-            child: Wrap(
-              spacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                AdminOutlineButton(label: 'Ajustar preço', onPressed: onEdit),
-                IconButton(
-                  tooltip: item.active ? 'Pausar serviço' : 'Reativar serviço',
-                  onPressed: onToggle,
-                  icon: Icon(
-                    item.active
-                        ? Icons.pause_circle_outline
-                        : Icons.play_circle_outline,
-                    color: AppColors.muted,
+            Expanded(
+              flex: _flexCategory,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: AdminPill(label: item.category.toUpperCase()),
+              ),
+            ),
+            Expanded(flex: _flexTime, child: Text(item.duration)),
+            Expanded(
+              flex: _flexPrice,
+              child: Text(
+                _preco(item.price),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
+            ),
+            Expanded(
+              flex: _flexStatus,
+              child: Row(
+                children: [
+                  Icon(Icons.circle, size: 8, color: statusColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    item.active ? 'ATIVO' : 'PAUSADO',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              flex: _flexAction,
+              child: Wrap(
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  AdminOutlineButton(
+                    label: 'Ajustar',
+                    onPressed: busy ? () {} : onEdit,
+                  ),
+                  IconButton(
+                    tooltip: item.active ? 'Pausar serviço' : 'Reativar serviço',
+                    onPressed: busy ? null : onToggle,
+                    icon: Icon(
+                      item.active
+                          ? Icons.pause_circle_outline
+                          : Icons.play_circle_outline,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Diálogo de "Adicionar serviço" (sem [initial]) ou "Ajustar preço" (com [initial]).
+/// Diálogo de "Adicionar serviço" (sem [initial]) ou "Ajustar" (com [initial],
+/// edita todos os campos). Devolve os dados já no formato da API, ou null.
 class _ServiceDialog extends StatefulWidget {
   const _ServiceDialog({this.initial});
 
-  final AdminService? initial;
+  final Service? initial;
 
   @override
   State<_ServiceDialog> createState() => _ServiceDialogState();
@@ -329,9 +368,11 @@ class _ServiceDialog extends StatefulWidget {
 
 class _ServiceDialogState extends State<_ServiceDialog> {
   late final TextEditingController _name;
-  late final TextEditingController _duration;
+  late final TextEditingController _minutes;
   late final TextEditingController _price;
-  String _category = 'CARROS';
+  late final TextEditingController _description;
+  late String _category;
+  late bool _vip;
   String? _error;
 
   bool get _isEdit => widget.initial != null;
@@ -339,47 +380,60 @@ class _ServiceDialogState extends State<_ServiceDialog> {
   @override
   void initState() {
     super.initState();
-    final initial = widget.initial;
-    _name = TextEditingController(text: initial?.name ?? '');
-    _duration = TextEditingController(text: initial?.duration ?? '');
+    final s = widget.initial;
+    _name = TextEditingController(text: s?.name ?? '');
+    _minutes = TextEditingController(text: s == null ? '' : '${s.durationMinutes}');
     _price = TextEditingController(
-      text: initial == null
-          ? ''
-          : initial.price.toStringAsFixed(2).replaceAll('.', ','),
+      text: s == null ? '' : s.price.toStringAsFixed(2).replaceAll('.', ','),
     );
+    _description = TextEditingController(text: s?.description ?? '');
+    _category = (s != null && _categorias.contains(s.category))
+        ? s.category
+        : _categorias.first;
+    _vip = s?.vip ?? false;
   }
 
   @override
   void dispose() {
     _name.dispose();
-    _duration.dispose();
+    _minutes.dispose();
     _price.dispose();
+    _description.dispose();
     super.dispose();
   }
 
   void _submit() {
+    final name = _name.text.trim();
+    if (name.isEmpty || name.length > 120) {
+      setState(() => _error = 'O nome deve ter de 1 a 120 caracteres.');
+      return;
+    }
+    final minutes = int.tryParse(_minutes.text.trim());
+    if (minutes == null || minutes < 1 || minutes > 1440) {
+      setState(() => _error = 'A duração deve ser de 1 a 1440 minutos.');
+      return;
+    }
     final price = double.tryParse(_price.text.trim().replaceAll(',', '.'));
     if (price == null || price <= 0) {
       setState(() => _error = 'Informe um preço válido.');
       return;
     }
-    if (!_isEdit && _name.text.trim().isEmpty) {
-      setState(() => _error = 'Informe o nome do serviço.');
+    final description = _description.text.trim();
+    if (description.length > 500) {
+      setState(() => _error = 'A descrição pode ter até 500 caracteres.');
       return;
     }
 
-    final base = widget.initial;
-    final duration = _duration.text.trim();
-    Navigator.of(context).pop(
-      AdminService(
-        name: base?.name ?? _name.text.trim(),
-        description: base?.description ?? 'Serviço adicionado pelo painel',
-        category: base?.category ?? _category,
-        duration: base?.duration ?? (duration.isEmpty ? '—' : duration),
-        price: price,
-        active: base?.active ?? true,
-      ),
-    );
+    Navigator.of(context).pop(<String, dynamic>{
+      'nome': name,
+      'categoria': _category,
+      'duracao_min': minutes,
+      // A API espera o preço como texto com centavos.
+      'preco': price.toStringAsFixed(2),
+      // Vazio vira null, o que limpa a descrição no back.
+      'descricao': description.isEmpty ? null : description,
+      'destaque': _vip,
+    });
   }
 
   @override
@@ -390,22 +444,14 @@ class _ServiceDialogState extends State<_ServiceDialog> {
         borderRadius: BorderRadius.circular(20),
         side: const BorderSide(color: AppColors.border),
       ),
-      title: Text(_isEdit ? 'Ajustar preço' : 'Adicionar serviço'),
+      title: Text(_isEdit ? 'Ajustar serviço' : 'Adicionar serviço'),
       content: SizedBox(
         width: 380,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_isEdit)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  widget.initial!.name,
-                  style: const TextStyle(color: AppColors.muted),
-                ),
-              )
-            else ...[
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               TextField(
                 controller: _name,
                 decoration: adminInputDecoration(hint: 'Nome do serviço'),
@@ -413,35 +459,51 @@ class _ServiceDialogState extends State<_ServiceDialog> {
               const SizedBox(height: 12),
               AdminDropdown(
                 value: _category,
-                items: const ['CARROS', 'MOTOS'],
+                items: _categorias,
                 onChanged: (v) => setState(() => _category = v),
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: _duration,
-                decoration:
-                    adminInputDecoration(hint: 'Tempo médio (ex.: 40 min)'),
-              ),
-              const SizedBox(height: 12),
-            ],
-            TextField(
-              controller: _price,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: adminInputDecoration(
-                hint: 'Preço (ex.: 80,00)',
-                icon: Icons.attach_money,
-              ),
-            ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Text(
-                  _error!,
-                  style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                controller: _minutes,
+                keyboardType: TextInputType.number,
+                decoration: adminInputDecoration(
+                  hint: 'Duração em minutos (ex.: 40)',
+                  icon: Icons.schedule,
                 ),
               ),
-          ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: _price,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: adminInputDecoration(
+                  hint: 'Preço (ex.: 80,00)',
+                  icon: Icons.attach_money,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _description,
+                maxLines: 3,
+                maxLength: 500,
+                decoration: adminInputDecoration(hint: 'Descrição (opcional)'),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Destaque no site'),
+                value: _vip,
+                onChanged: (v) => setState(() => _vip = v),
+              ),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
       actions: [

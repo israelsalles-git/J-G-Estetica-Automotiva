@@ -13,6 +13,9 @@ class Service {
   final String imageUrl;
   final bool vip;
 
+  /// `false` = serviço pausado (some do site, continua no painel).
+  final bool active;
+
   const Service({
     required this.id,
     required this.category,
@@ -23,6 +26,7 @@ class Service {
     required this.price,
     this.imageUrl = '',
     this.vip = false,
+    this.active = true,
   });
 
   factory Service.fromJson(Map<String, dynamic> json) {
@@ -37,6 +41,7 @@ class Service {
       // A API envia o preço como texto com centavos ("70.00"); aceitamos número também.
       price: double.parse(json['preco'].toString()),
       vip: (json['destaque'] as bool?) ?? false,
+      active: (json['ativo'] as bool?) ?? true,
     );
   }
 

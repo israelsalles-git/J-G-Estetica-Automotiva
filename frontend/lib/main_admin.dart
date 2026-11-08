@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/api_client.dart';
+import 'package:frontend/providers/admin_catalog_provider.dart';
 import 'package:frontend/providers/booking_provider.dart';
 import 'package:frontend/providers/catalog_provider.dart';
 import 'package:frontend/providers/works_provider.dart';
@@ -33,6 +34,12 @@ void main() {
         // Agenda do painel (usada pela Agenda do dia e pela Liberação de Horários).
         Provider<AgendaService>.value(value: ApiAgendaService(api)),
         ChangeNotifierProvider<CatalogProvider>.value(value: catalog),
+        // Catálogo do painel (inclui serviços pausados). Separado do do site
+        // para não misturar os dois; o painel chama load() ao abrir.
+        ChangeNotifierProvider<AdminCatalogProvider>(
+          create: (_) =>
+              AdminCatalogProvider(repository: ApiCatalogRepository(api)),
+        ),
         ChangeNotifierProvider<BookingProvider>(
           create: (_) => BookingProvider(
               catalog: catalog, repository: ApiBookingRepository(api)),
