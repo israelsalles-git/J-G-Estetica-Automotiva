@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/core/business_config.dart';
+import 'package:frontend/models/agenda_appointment.dart';
+import 'package:frontend/services/agenda_service.dart';
 import 'package:frontend/ui/screens/cliente/home_page.dart';
 import 'package:frontend/ui/screens/admin/panels/day_agenda_panel.dart';
 import 'package:frontend/ui/screens/admin/panels/photos_panel.dart';
@@ -8,6 +12,7 @@ import 'package:frontend/ui/screens/admin/panels/schedule_panel.dart';
 import 'package:frontend/ui/theme/app_theme.dart';
 import 'package:frontend/ui/widgets/admin/admin_ui.dart';
 import 'package:frontend/ui/widgets/gradient_button.dart';
+import 'package:provider/provider.dart';
 
 /// Página única do painel: resumo do dia, agenda do dia, liberação de
 /// horários, fotos e tabela de preços.
@@ -131,23 +136,8 @@ class _HeroCard extends StatelessWidget {
       ],
     );
 
-    // Números de exemplo; serão trocados pelos dados reais da API.
-    const stats = Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        _StatBox(
-          icon: Icons.event_available_outlined,
-          value: '8',
-          label: 'AGENDAMENTOS HOJE',
-        ),
-        _StatBox(
-          icon: Icons.local_car_wash_outlined,
-          value: '3 / 4',
-          label: 'BOXES OCUPADOS',
-        ),
-      ],
-    );
+    // Números reais: vêm da agenda de hoje (API).
+    const stats = _HeroStats();
 
     final button = GradientButton(
       label: 'VER PORTAL DO CLIENTE',
@@ -184,6 +174,73 @@ class _HeroCard extends StatelessWidget {
                 button,
               ],
             ),
+    );
+  }
+}
+
+/// Os dois números do topo, calculados com os agendamentos de hoje (API).
+/// Enquanto carrega, ou se a API falhar, mostram "—" (nunca um número inventado).
+class _HeroStats extends StatefulWidget {
+  const _HeroStats();
+
+  @override
+  State<_HeroStats> createState() => _HeroStatsState();
+}
+
+class _HeroStatsState extends State<_HeroStats> {
+  List<AgendaAppointment>? _items; // null = ainda sem dados
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+    // Atualiza a cada minuto: o "em andamento" muda com o relógio.
+    _ticker = Timer.periodic(const Duration(minutes: 1), (_) => _carregar());
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _carregar() async {
+    try {
+      final itens =
+          await context.read<AgendaService>().loadDay(DateTime.now());
+      if (!mounted) return;
+      setState(() => _items = itens);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _items = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final itens = _items;
+    final agora = DateTime.now();
+    final hoje = itens == null ? '—' : '${itens.length}';
+    final emAndamento = itens == null
+        ? '—'
+        : '${itens.where((a) => a.statusAt(agora) == AgendaStatus.emAndamento).length}';
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        _StatBox(
+          icon: Icons.event_available_outlined,
+          value: hoje,
+          label: 'AGENDAMENTOS HOJE',
+        ),
+        _StatBox(
+          icon: Icons.local_car_wash_outlined,
+          value: emAndamento,
+          label: 'EM ANDAMENTO AGORA',
+        ),
+      ],
     );
   }
 }
