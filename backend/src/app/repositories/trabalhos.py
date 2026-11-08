@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.database import commit
 from app.models.trabalhos import Trabalho
 
 
@@ -19,11 +20,11 @@ def obter(db: Session, trabalho_id: int) -> Trabalho | None:
 def salvar(db: Session, trabalho: Trabalho) -> Trabalho:
     """Insere ou atualiza o trabalho e devolve o registro atualizado do banco."""
     db.add(trabalho)
-    db.commit()
+    commit(db)
     db.refresh(trabalho)
     return trabalho
 
 
 def remover(db: Session, trabalho: Trabalho) -> None:
     db.delete(trabalho)
-    db.commit()
+    commit(db)

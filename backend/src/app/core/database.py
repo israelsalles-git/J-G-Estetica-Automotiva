@@ -1,6 +1,7 @@
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import settings
@@ -35,3 +36,16 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def commit(db: Session) -> None:
+    """Commit que limpa a sessão se o banco recusar (UNIQUE, CHECK, FK).
+
+    Sem o rollback, a sessão fica inutilizável (PendingRollbackError) até o fim da requisição.
+    O erro é relançado e vira HTTP 409 no handler do main.py.
+    """
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise

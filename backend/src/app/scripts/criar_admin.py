@@ -7,6 +7,7 @@ import sys
 from getpass import getpass
 
 from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 import app.models  # noqa: F401  (registra todos os models antes de configurar os relacionamentos)
 from app.core.database import SessionLocal
@@ -37,6 +38,10 @@ def main() -> int:
             usuario = auth_service.cadastrar(db, dados)
         except ConflitoError as exc:
             print(f"\nErro: {exc}.")
+            return 1
+        except IntegrityError:
+            # E-mail cadastrado por outra pessoa entre a conferência e a gravação.
+            print("\nErro: já existe um usuário com este e-mail.")
             return 1
 
     print(f"\nUsuário criado: id={usuario.id}, {usuario.nome} <{usuario.email}>")

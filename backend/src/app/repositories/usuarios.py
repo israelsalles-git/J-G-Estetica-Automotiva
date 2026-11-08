@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.database import commit
 from app.models.usuarios import Usuario
 
 
@@ -15,6 +16,6 @@ def obter_por_email(db: Session, email: str) -> Usuario | None:
 def salvar(db: Session, usuario: Usuario) -> Usuario:
     """Insere ou atualiza o usuário e devolve o registro atualizado do banco."""
     db.add(usuario)
-    db.commit()
+    commit(db)
     db.refresh(usuario)
     return usuario

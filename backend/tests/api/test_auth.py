@@ -2,8 +2,10 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 import pytest
+from fastapi.testclient import TestClient
 
 from app.core.config import settings
+from app.main import app
 
 pytestmark = pytest.mark.api
 
@@ -88,6 +90,36 @@ class TestLogin:
         resposta = client_sem_token.post("/auth/login", json=corpo)
 
         assert resposta.status_code == 422
+
+    def test_login_sem_jwt_secret_retorna_503(self, client_sem_token, usuario, monkeypatch):
+        # Credenciais corretas: com senha errada a resposta continua 401 (confere antes do token).
+        monkeypatch.setattr(settings, "jwt_secret", "")
+
+        resposta = login(client_sem_token)
+
+        assert resposta.status_code == 503
+        assert "Login indisponível" in resposta.json()["detail"]
+
+
+# ---------------------------------------------------------------------------
+# Subida da API (lifespan)
+# ---------------------------------------------------------------------------
+class TestSubida:
+    # O lifespan só roda com `with TestClient(app)`; as fixtures usam TestClient sem `with`.
+    def test_api_nao_sobe_em_producao_sem_jwt_secret(self, monkeypatch):
+        monkeypatch.setattr(settings, "environment", "production")
+        monkeypatch.setattr(settings, "jwt_secret", "")
+
+        with pytest.raises(RuntimeError, match="JWT_SECRET"):
+            with TestClient(app):
+                pass
+
+    def test_api_sobe_em_desenvolvimento_sem_jwt_secret(self, monkeypatch):
+        monkeypatch.setattr(settings, "environment", "development")
+        monkeypatch.setattr(settings, "jwt_secret", "")
+
+        with TestClient(app) as client:
+            assert client.get("/health").status_code == 200
 
 
 # ---------------------------------------------------------------------------

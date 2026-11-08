@@ -1,4 +1,4 @@
-# 📋 Sistema de Gestão de Clientes — J&G Estética Automotiva
+# 📋 Sistema de Gestão de Clientes — Tal Da Estetica Automotiva
 
 Sistema desenvolvido para automatizar e organizar a gestão de clientes de uma empresa de estética automotiva, centralizando informações e facilitando o atendimento do dia a dia.
 
@@ -17,7 +17,7 @@ Sistema desenvolvido para automatizar e organizar a gestão de clientes de uma e
 
 ## 🏢 Parceiro
 
-- **Empresa:** J&G Estética Automotiva
+- **Empresa:** Tal Da Estetica Automotiva
 - **Responsável:** Gustavo Ribeiro Casemiro
 - **Segmento:** Estética automotiva
 - **Localização:** Sarandi/PR
@@ -26,7 +26,7 @@ Sistema desenvolvido para automatizar e organizar a gestão de clientes de uma e
 
 ## 📌 Sobre o Projeto
 
-A J&G Estética Automotiva enfrentava dificuldades na organização das informações dos clientes — dados registrados manualmente ou espalhados em diferentes locais, tornando a consulta e o acompanhamento lentos e sujeitos a erros.
+A Tal Da Estetica Automotiva enfrentava dificuldades na organização das informações dos clientes — dados registrados manualmente ou espalhados em diferentes locais, tornando a consulta e o acompanhamento lentos e sujeitos a erros.
 
 Este projeto tem como objetivo desenvolver um sistema que centralize essas informações em um único lugar, tornando o processo mais ágil e confiável.
 
@@ -106,12 +106,12 @@ Documentação automática: `http://localhost:8000/docs`
 
 | Variável | Descrição | Padrão |
 |----------|-----------|--------|
-| `APP_NAME` | Nome da API | `J&G Estética Automotiva API` |
+| `APP_NAME` | Nome da API | `Tal Da Estetica Automotiva` |
 | `APP_VERSION` | Versão da API | `0.1.0` |
-| `ENVIRONMENT` | Ambiente (`development`, `production`...) | `development` |
+| `ENVIRONMENT` | Ambiente (`development`, `production`...). Em `production`, a API não sobe sem `JWT_SECRET` | `development` |
 | `DEBUG` | Ativa o modo debug | `false` |
 | `DATABASE_URL` | URL de conexão com o PostgreSQL | `postgresql+psycopg://postgres:postgres@localhost:5432/jg_estetica` |
-| `JWT_SECRET` | Segredo que assina os tokens de login. **Obrigatório**: vazio, ninguém consegue logar | vazio |
+| `JWT_SECRET` | Segredo que assina os tokens de login, com **pelo menos 32 caracteres**. **Obrigatório**: vazio, o login responde `503` e, em produção, a API não sobe | vazio |
 | `JWT_EXPIRA_MIN` | Validade do token de login, em minutos | `480` (8 horas) |
 | `CORS_ORIGIN_REGEX` | Padrão (regex) de origens liberadas para chamar a API pelo navegador. Em desenvolvimento: `http://localhost:\d+` | vazio (nenhuma) |
 | `CORS_ORIGINS` | Origens exatas liberadas, em JSON e sem `/` no final. Ex.: `["https://seusite.com.br"]` | `[]` (nenhuma) |

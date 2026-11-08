@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.usuarios import Usuario
 from app.repositories import usuarios as usuarios_repository
+from app.services.exceptions import ConfiguracaoError
 
 ALGORITMO_JWT = "HS256"
 
@@ -28,7 +29,7 @@ def verificar_senha(senha: str, senha_hash: str) -> bool:
 def criar_token(usuario_id: int) -> str:
     """Gera o JWT de acesso, válido por JWT_EXPIRA_MIN minutos."""
     if not settings.jwt_secret:
-        raise RuntimeError("JWT_SECRET não configurado no .env")
+        raise ConfiguracaoError("Login indisponível: o servidor está sem Token configurado")
     expira = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expira_min)
     return jwt.encode(
         {"sub": str(usuario_id), "exp": expira}, settings.jwt_secret, algorithm=ALGORITMO_JWT

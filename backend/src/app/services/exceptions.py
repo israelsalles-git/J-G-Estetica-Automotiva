@@ -16,3 +16,7 @@ class IntegracaoError(Exception):
 
 class ArquivoInvalidoError(Exception):
     """O arquivo enviado não é uma imagem aceita (formato ou tamanho). A API converte em HTTP 422."""
+
+
+class ConfiguracaoError(Exception):
+    """Servidor sem configuração obrigatória (ex.: JWT_SECRET). A API converte em HTTP 503."""

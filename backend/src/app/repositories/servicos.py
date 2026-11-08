@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.database import commit
 from app.models.servicos import Servico
 
 
@@ -20,6 +21,6 @@ def obter(db: Session, servico_id: int) -> Servico | None:
 def salvar(db: Session, servico: Servico) -> Servico:
     """Insere ou atualiza o serviço e devolve o registro atualizado do banco."""
     db.add(servico)
-    db.commit()
+    commit(db)
     db.refresh(servico)
     return servico

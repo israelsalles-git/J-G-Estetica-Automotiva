@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.database import commit
 from app.models.agendamentos import Agendamento
 
 MARGEM_SOBREPOSICAO = timedelta(days=1)
@@ -44,11 +45,11 @@ def obter(db: Session, agendamento_id: int) -> Agendamento | None:
 def salvar(db: Session, agendamento: Agendamento) -> Agendamento:
     """Insere ou atualiza o agendamento e devolve o registro atualizado do banco."""
     db.add(agendamento)
-    db.commit()
+    commit(db)
     db.refresh(agendamento)
     return agendamento
 
 
 def remover(db: Session, agendamento: Agendamento) -> None:
     db.delete(agendamento)
-    db.commit()
+    commit(db)

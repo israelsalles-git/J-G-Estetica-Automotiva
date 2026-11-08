@@ -1,5 +1,8 @@
 import pytest
 
+from app.models.clientes import Cliente
+from app.repositories import clientes as clientes_repository
+
 pytestmark = pytest.mark.api
 
 URL = "/clientes"
@@ -82,6 +85,24 @@ class TestCriar:
         resposta = criar_cliente(client, nome="João", cpf_cnpj="123.456.789-00")
 
         assert resposta.status_code == 409
+
+    def test_cpf_duplicado_em_corrida_retorna_409_e_sessao_continua_valida(
+        self, client, db_session, monkeypatch
+    ):
+        # Simula a corrida: outro cadastro com o mesmo CPF entra direto no banco e a conferência
+        # do service não o enxerga. Quem barra é o UNIQUE do banco (IntegrityError).
+        db_session.add(Cliente(nome="Maria", cpf_cnpj=CPF, telefone=CELULAR))
+        db_session.commit()
+        monkeypatch.setattr(clientes_repository, "obter_por_cpf_cnpj", lambda *_: None)
+
+        resposta = criar_cliente(client, nome="João")
+
+        assert resposta.status_code == 409
+        assert "conflitam" in resposta.json()["detail"]
+        # Sem o rollback do commit(), a sessão ficaria travada (PendingRollbackError) aqui.
+        listagem = client.get(URL)
+        assert listagem.status_code == 200
+        assert [c["nome"] for c in listagem.json()] == ["Maria"]
 
     @pytest.mark.parametrize("cpf_cnpj", ["123", "1234567890", "123456789012", "abc"])
     def test_cpf_cnpj_com_tamanho_invalido_retorna_422(self, client, cpf_cnpj):
