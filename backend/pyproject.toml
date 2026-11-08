@@ -12,6 +12,9 @@ dependencies = [
     "alembic>=1.20.1",
     "pyjwt==2.15.1",
     "pwdlib[argon2]==0.3.1",
+    # Login do painel com Google (confere o id_token)
+    "google-auth>=2.60",
+    "requests>=2.32",
 ]
 
 [project.optional-dependencies]
@@ -21,7 +24,6 @@ dev = [
 # Integração com o Google Agenda (só necessária se GOOGLE_CALENDAR_ID estiver configurado)
 google = [
     "google-api-python-client>=2.200",
-    "google-auth>=2.60",
 ]
 
 [tool.pytest.ini_options]

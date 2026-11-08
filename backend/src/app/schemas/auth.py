@@ -20,6 +20,12 @@ class LoginRequest(BaseModel):
     senha: str = Field(min_length=1, max_length=SENHA_MAX)
 
 
+class LoginGoogleRequest(BaseModel):
+    """id_token devolvido pelo Google Sign-In no navegador."""
+
+    id_token: str = Field(min_length=1, max_length=4096)
+
+
 #Usado só pelo script de cadastro do admin (não há cadastro público)
 class UsuarioCreate(BaseModel):
     nome: Nome

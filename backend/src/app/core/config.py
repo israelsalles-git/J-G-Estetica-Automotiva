@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     google_calendar_id: str = ""
     google_credentials_file: str = ""
 
+    # Login do painel com Google: Client ID do cliente OAuth (tipo Web application).
+    google_client_id: str = ""
+    # Contas Google autorizadas a entrar no painel: lista fixa, em JSON no .env.
+    google_admin_emails: list[str] = []
+
     @field_validator("database_url")
     @classmethod
     def normalizar_database_url(cls, url: str) -> str:
@@ -72,6 +77,12 @@ class Settings(BaseSettings):
         if "supabase.com" in host_e_resto and "sslmode=" not in url:
             url += ("&" if "?" in url else "?") + "sslmode=require"
         return url
+
+    @field_validator("google_admin_emails")
+    @classmethod
+    def normalizar_google_admin_emails(cls, emails: list[str]) -> list[str]:
+        """E-mail é comparado sem diferenciar maiúsculas: guarda sempre em minúsculas."""
+        return [email.strip().lower() for email in emails if email.strip()]
 
     @field_validator("cors_origins")
     @classmethod

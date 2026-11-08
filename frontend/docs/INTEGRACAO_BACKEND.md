@@ -19,7 +19,7 @@ flutter run -d chrome --dart-define=API_URL=https://api.seudominio.com.br
 | `CatalogRepository` | `ApiCatalogRepository` | `GET /servicos` (público) |
 | `BookingRepository` | `ApiBookingRepository` | `GET /agendamentos/ocupados` e `POST /agendamentos/publico` (públicos) |
 | `WorksRepository` | `ApiWorksRepository` | `GET /trabalhos` (público); `POST`, `PUT` e `DELETE` (painel, com token) |
-| `AuthService` | `ApiAuthService` | `POST /auth/login` (painel) |
+| `AuthService` | `ApiAuthService` | `POST /auth/login` (painel); `POST /auth/google` (painel, login com Google) |
 
 A ligação acontece em `lib/main.dart` (site) e `lib/main_admin.dart` (painel).
 
@@ -52,6 +52,21 @@ Envio pelo painel como multipart (`POST /trabalhos`, campo `imagem`):
 - até 5 MB;
 - a foto é gravada em `backend/uploads/trabalhos/` e servida em `/arquivos/...`.
 
+## Login com Google (painel)
+
+Fluxo, nesta ordem:
+1. Na Web, o `authenticate()` do `google_sign_in` não é suportado. Por isso o login começa pelo botão
+   oficial do Google (`renderButton`, de `google_sign_in_web`) na `LoginScreen`.
+2. O Google devolve um `id_token` pelo evento `authenticationEvents`, tratado no `ApiAuthService`.
+3. O app envia o `id_token` a `POST /auth/google`. A API confere a assinatura e o `client_id`, e só
+   aceita contas da lista fixa de admins com usuário ativo.
+4. A API devolve o token do painel, que fica salvo e vai nas próximas requisições. Se a conta não for
+   autorizada, a tela mostra "Conta Google não autorizada".
+
+Para rodar localmente, use a porta 5000 (`--web-port=5000`). Ela precisa estar em
+"Origens JavaScript autorizadas" do cliente OAuth no Google Cloud, senão o Google recusa com
+`origin_mismatch`. Mudanças no Google podem levar alguns minutos para valer.
+
 ## Erros
 
 A API responde `{"detail": "..."}` com mensagem em português. O `ApiClient` usa essa mensagem
@@ -63,5 +78,4 @@ Um `401` mostra "Sessão expirada. Entre novamente.".
 - **Painel "Fotos de Serviços"** (`photos_panel.dart`): ainda simula o envio. Para ligar ao
   `WorksRepository`, falta escolher um seletor de arquivos (dependência nova) e adaptar o painel.
 - **Painéis "Preços" e "Agenda"** do admin: ainda usam dados fixos na própria tela.
-- **Login com Google**: o botão existe, mas a API não tem esse login ainda.
 - **Contato pelo botão flutuante**: `HomePage(onContactPressed: ...)` continua sem ação definida.

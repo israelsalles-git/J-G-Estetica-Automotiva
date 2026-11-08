@@ -197,8 +197,11 @@ cd J-G-Estetica-Automotiva/frontend
 # Instale as dependências
 flutter pub get
 
-# Execute o aplicativo
-flutter run
+# Execute o site do cliente
+flutter run -d chrome
+
+# Execute o painel admin (porta fixa 5000, cadastrada no Google Cloud para o login com Google)
+flutter run -d chrome -t lib/main_admin.dart --web-port=5000
 ```
 
 ---
