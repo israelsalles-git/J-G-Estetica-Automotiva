@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:frontend/ui/theme/app_theme.dart';
 import 'package:frontend/ui/widgets/booking_section.dart';
@@ -8,9 +9,11 @@ import 'package:frontend/ui/widgets/navbar.dart';
 import 'package:frontend/ui/widgets/services_section.dart';
 import 'package:frontend/ui/widgets/works_section.dart';
 
+const _whatsappPhone = '5511999999999';
+const _whatsappMessage = 'Olá! Gostaria de agendar um horário.';
+
 class HomePage extends StatefulWidget {
-  /// Toque no botão flutuante de contato. Não há ação padrão: o que acontece
-  /// (abrir WhatsApp, telefone, chat…) é definido por quem conectar o backend.
+  /// Toque no botão flutuante de contato. Se não for informado, abre o WhatsApp.
   final VoidCallback? onContactPressed;
 
   const HomePage({super.key, this.onContactPressed});
@@ -34,6 +37,17 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _openWhatsapp() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final uri = Uri.https('wa.me', '/$_whatsappPhone', {'text': _whatsappMessage});
+    final abriu = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!abriu) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Não foi possível abrir o WhatsApp.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     void toServices() => _goTo(_servicesKey);
@@ -43,9 +57,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.whatsapp,
-        onPressed: widget.onContactPressed ??
-            () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('Contato ainda não conectado ao backend.'))),
+        onPressed: widget.onContactPressed ?? _openWhatsapp,
         child: const Icon(Icons.chat, color: Colors.white),
       ),
       body: SingleChildScrollView(
