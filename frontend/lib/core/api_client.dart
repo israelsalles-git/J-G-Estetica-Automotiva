@@ -146,6 +146,9 @@ class ApiClient {
       }
     }
     if (status == 422) return 'Confira os dados informados e tente novamente.';
+    // Rate limit: a API já manda o detail em português; esta é a reserva para um 429
+    // sem detail (ex.: barrado por um proxy na frente da API).
+    if (status == 429) return 'Muitas tentativas. Aguarde um pouco e tente novamente.';
     return 'Algo deu errado no servidor. Tente novamente.';
   }
 

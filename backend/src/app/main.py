@@ -5,11 +5,13 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import IntegrityError
 
 import app.models  # noqa: F401  (registra todos os models antes de configurar os relacionamentos)
 from app.api import agendamentos, auth, clientes, health, servicos, trabalhos
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.services.exceptions import (
     ArquivoInvalidoError,
     ConfiguracaoError,
@@ -24,11 +26,15 @@ logger = logging.getLogger(__name__)
 TAMANHO_MIN_JWT_SECRET = 32  # abaixo disso o PyJWT avisa que a chave HS256 é fraca
 
 
+def _em_producao() -> bool:
+    return settings.environment.strip().lower() == "production"
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """Confere a configuração na subida. Em produção, sem JWT_SECRET a API não sobe."""
+    """Confere a configuração na subida. Em produção, configuração insegura impede a API de subir."""
     if not settings.jwt_secret:
-        if settings.environment.strip().lower() == "production":
+        if _em_producao():
             raise RuntimeError("JWT_SECRET é obrigatório em produção")
         logger.warning("JWT_SECRET vazio: login e rotas protegidas ficam indisponíveis")
     elif len(settings.jwt_secret) < TAMANHO_MIN_JWT_SECRET:
@@ -36,6 +42,15 @@ async def lifespan(_: FastAPI):
             "JWT_SECRET com menos de %d caracteres: use um segredo mais longo",
             TAMANHO_MIN_JWT_SECRET,
         )
+
+    # CORS em produção: só os endereços exatos do site (o "*" já é recusado em config.py).
+    if _em_producao():
+        if not settings.cors_origins:
+            raise RuntimeError("CORS_ORIGINS é obrigatório em produção (endereços exatos do site)")
+        if settings.cors_origin_regex:
+            raise RuntimeError(
+                "CORS_ORIGIN_REGEX deve ficar vazio em produção: ele serve só para o localhost do dev"
+            )
     yield
 
 
@@ -47,14 +62,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Rate limit (core/rate_limit.py): o slowapi procura o limiter em app.state.
+app.state.limiter = limiter
+
 # Libera o site (Flutter Web, outra origem) a chamar a API pelo navegador.
 # Sem allow_credentials: a autenticação é pelo header Authorization, não por cookie.
+# Métodos e headers: só o que o site usa (Accept e Content-Type simples o navegador já libera).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_origin_regex=settings.cors_origin_regex,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(health.router)
@@ -99,6 +118,14 @@ async def credenciais_invalidas_handler(_: Request, exc: CredenciaisInvalidasErr
         status_code=status.HTTP_401_UNAUTHORIZED,
         content={"detail": str(exc)},
         headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+@app.exception_handler(RateLimitExceeded)
+async def limite_excedido_handler(_: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={"detail": "Muitas tentativas. Aguarde um pouco e tente novamente."},
     )
 
 

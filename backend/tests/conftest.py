@@ -14,6 +14,7 @@ os.environ["CORS_ORIGINS"] = '["https://site-teste.com.br"]'
 import app.models  # noqa: E402, F401  (registra os models no Base.metadata)
 from app.core.config import settings  # noqa: E402
 from app.core.database import Base, get_db  # noqa: E402
+from app.core.rate_limit import limiter  # noqa: E402
 from app.core.security import criar_token, gerar_hash_senha  # noqa: E402
 from app.integrations.google_agenda import get_agenda  # noqa: E402
 from app.main import app  # noqa: E402
@@ -24,6 +25,16 @@ EMAIL_TESTE = "admin@teste.com"
 SENHA_TESTE = "senha-de-teste-123"
 # O argon2 é lento de propósito: gera o hash uma vez só, e não a cada teste.
 SENHA_HASH_TESTE = gerar_hash_senha(SENHA_TESTE)
+
+
+@pytest.fixture(autouse=True)
+def rate_limit_desligado(monkeypatch):
+    """Desliga o rate limit em todos os testes: muitos fazem vários logins/agendamentos seguidos.
+
+    Os testes do limite (test_rate_limit.py) religam com a fixture `rate_limit_ligado`.
+    """
+    monkeypatch.setattr(limiter, "enabled", False)
+    limiter.reset()
 
 
 @pytest.fixture

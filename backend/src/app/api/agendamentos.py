@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.rate_limit import LIMITE_AGENDAMENTO_PUBLICO, limiter
 from app.core.security import require_auth
 from app.integrations.google_agenda import Agenda, get_agenda
 from app.schemas.agendamentos import (
@@ -42,7 +43,9 @@ def listar_horarios_ocupados(
 @router_publico.post(
     "/publico", response_model=AgendamentoConfirmado, status_code=status.HTTP_201_CREATED
 )
+@limiter.limit(LIMITE_AGENDAMENTO_PUBLICO)  # fica abaixo do decorator da rota
 def solicitar_agendamento(
+    request: Request,  # exigido pelo limiter (lê o IP de quem chamou)
     dados: AgendamentoCreate,
     db: Session = Depends(get_db),
     agenda: Agenda = Depends(get_agenda),

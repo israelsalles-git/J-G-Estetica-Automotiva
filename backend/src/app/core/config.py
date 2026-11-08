@@ -87,8 +87,14 @@ class Settings(BaseSettings):
     @field_validator("cors_origins")
     @classmethod
     def normalizar_cors_origins(cls, origens: list[str]) -> list[str]:
-        """O navegador envia a origem sem "/" no final; "https://site.com.br/" nunca bateria."""
-        return [origem.strip().rstrip("/") for origem in origens if origem.strip()]
+        """O navegador envia a origem sem "/" no final; "https://site.com.br/" nunca bateria.
+
+        "*" é recusado: liberaria qualquer site a chamar a API pelo navegador do usuário.
+        """
+        origens = [origem.strip().rstrip("/") for origem in origens if origem.strip()]
+        if "*" in origens:
+            raise ValueError('CORS_ORIGINS não aceita "*": liste os endereços exatos do site')
+        return origens
 
 
 @lru_cache

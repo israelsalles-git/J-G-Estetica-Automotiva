@@ -15,6 +15,8 @@ dependencies = [
     # Login do painel com Google (confere o id_token)
     "google-auth>=2.60",
     "requests>=2.32",
+    # Rate limit nas rotas públicas (agendamento do site e login)
+    "slowapi==0.1.10",
 ]
 
 [project.optional-dependencies]

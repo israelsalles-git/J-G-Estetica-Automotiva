@@ -71,6 +71,34 @@ void main() {
       );
     });
 
+    test('429 com detail mostra o detail da API', () {
+      expect(
+        api(429, '{"detail":"Muitas tentativas. Aguarde um pouco e tente novamente."}')
+            .postJson('/agendamentos/publico', {}),
+        erroComMensagem('Muitas tentativas. Aguarde um pouco e tente novamente.'),
+      );
+    });
+
+    test('429 sem detail (ex.: proxy) usa a mensagem própria', () {
+      expect(
+        api(429, '<html><body>Too Many Requests</body></html>')
+            .postJson('/auth/login', {}),
+        erroComMensagem('Muitas tentativas. Aguarde um pouco e tente novamente.'),
+      );
+    });
+
+    test('429 com token não derruba a sessão', () async {
+      final c = api(429, '{"error":"Rate limit exceeded"}', token: 'abc');
+      var expirou = false;
+      c.onSessaoExpirada = () => expirou = true;
+
+      await expectLater(
+        c.get('/servicos'),
+        erroComMensagem('Muitas tentativas. Aguarde um pouco e tente novamente.'),
+      );
+      expect(expirou, isFalse);
+    });
+
     test('sucesso com corpo vazio devolve null', () async {
       expect(await api(204, '').get('/x'), isNull);
     });
