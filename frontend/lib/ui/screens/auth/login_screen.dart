@@ -244,25 +244,36 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
               const _OrDivider(),
               const SizedBox(height: 20),
-              SizedBox(
-                height: 52,
-                child: Center(
-                  child: _googlePronto
-                      ? gweb.renderButton(
-                          configuration: gweb.GSIButtonConfiguration(
-                            theme: gweb.GSIButtonTheme.filledBlack,
-                            size: gweb.GSIButtonSize.large,
-                            text: gweb.GSIButtonText.continueWith,
-                            shape: gweb.GSIButtonShape.pill,
-                            locale: 'pt-BR',
-                            minimumWidth: 376,
-                          ),
-                        )
-                      : const CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: AppColors.redGlow,
-                        ),
-                ),
+              // O botão do Google tem largura em pixels (entre 200 e 400), então
+              // ela é calculada pelo espaço do card, para caber em qualquer tela.
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final largura = constraints.maxWidth.clamp(200.0, 400.0);
+                  return SizedBox(
+                    height: 52,
+                    child: Center(
+                      child: _googlePronto
+                          ? KeyedSubtree(
+                              // Nova chave quando a largura muda, para o botão ser redesenhado.
+                              key: ValueKey(largura),
+                              child: gweb.renderButton(
+                                configuration: gweb.GSIButtonConfiguration(
+                                  theme: gweb.GSIButtonTheme.filledBlack,
+                                  size: gweb.GSIButtonSize.large,
+                                  text: gweb.GSIButtonText.continueWith,
+                                  shape: gweb.GSIButtonShape.pill,
+                                  locale: 'pt-BR',
+                                  minimumWidth: largura,
+                                ),
+                              ),
+                            )
+                          : const CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: AppColors.redGlow,
+                            ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
