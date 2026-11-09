@@ -403,3 +403,21 @@ class TestDesativar:
         resposta = client.delete(f"{URL}/9999")
 
         assert resposta.status_code == 404
+
+
+class TestAtualizarCpfNulo:
+    def test_null_limpa_o_cpf_cnpj(self, client):
+        criado = criar_cliente(client).json()
+
+        resposta = client.put(f"{URL}/{criado['id']}", json={"cpf_cnpj": None})
+
+        assert resposta.status_code == 200
+        assert resposta.json()["cpf_cnpj"] is None
+
+    def test_null_no_nome_e_ignorado(self, client):
+        criado = criar_cliente(client, nome="Maria").json()
+
+        resposta = client.put(f"{URL}/{criado['id']}", json={"nome": None})
+
+        assert resposta.status_code == 200
+        assert resposta.json()["nome"] == "Maria"

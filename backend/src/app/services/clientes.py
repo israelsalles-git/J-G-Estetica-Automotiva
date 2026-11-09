@@ -7,6 +7,9 @@ from app.repositories import clientes as clientes_repository
 from app.schemas.clientes import ClienteCreate, ClienteUpdate
 from app.services.exceptions import ConflitoError, NaoEncontradoError
 
+# Campos que aceitam null no banco: enviar null limpa o valor.
+CAMPOS_ANULAVEIS = {"cpf_cnpj"}
+
 
 def _garantir_cpf_cnpj_livre(db: Session, cpf_cnpj: str | None, cliente_id: int | None = None) -> None:
     """Impede dois clientes com o mesmo CPF/CNPJ (ignora o próprio cliente na atualização)."""
@@ -35,9 +38,13 @@ def criar(db: Session, dados: ClienteCreate) -> Cliente:
 
 
 def atualizar(db: Session, cliente_id: int, dados: ClienteUpdate) -> Cliente:
-    """Altera só os campos enviados."""
+    """Altera só os campos enviados. `null` só limpa os campos que aceitam nulo no banco."""
     cliente = obter(db, cliente_id)
-    alteracoes = dados.model_dump(exclude_unset=True, exclude_none=True)
+    alteracoes = {
+        campo: valor
+        for campo, valor in dados.model_dump(exclude_unset=True).items()
+        if valor is not None or campo in CAMPOS_ANULAVEIS
+    }
     _garantir_cpf_cnpj_livre(db, alteracoes.get("cpf_cnpj"), cliente_id)
     for campo, valor in alteracoes.items():
         setattr(cliente, campo, valor)

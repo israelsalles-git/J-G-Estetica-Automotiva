@@ -7,6 +7,9 @@ from app.repositories import servicos as servicos_repository
 from app.schemas.servicos import ServicoCreate, ServicoUpdate
 from app.services.exceptions import NaoEncontradoError
 
+# Campos que aceitam null no banco: enviar null limpa o valor.
+CAMPOS_ANULAVEIS = {"descricao"}
+
 
 def listar(db: Session, incluir_inativos: bool = False) -> Sequence[Servico]:
     """Lista os serviços. Por padrão, apenas os ativos."""
@@ -25,9 +28,14 @@ def criar(db: Session, dados: ServicoCreate) -> Servico:
 
 
 def atualizar(db: Session, servico_id: int, dados: ServicoUpdate) -> Servico:
-    """Altera só os campos enviados."""
+    """Altera só os campos enviados. `null` só limpa os campos que aceitam nulo no banco."""
     servico = obter(db, servico_id)
-    for campo, valor in dados.model_dump(exclude_unset=True, exclude_none=True).items():
+    alteracoes = {
+        campo: valor
+        for campo, valor in dados.model_dump(exclude_unset=True).items()
+        if valor is not None or campo in CAMPOS_ANULAVEIS
+    }
+    for campo, valor in alteracoes.items():
         setattr(servico, campo, valor)
     return servicos_repository.salvar(db, servico)
 

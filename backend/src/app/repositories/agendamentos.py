@@ -6,8 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.core.database import commit
 from app.models.agendamentos import Agendamento
+from app.models.servicos import DURACAO_MAX_MIN
 
-MARGEM_SOBREPOSICAO = timedelta(days=1)
+# Igual à duração máxima de um serviço: nenhum agendamento que começou antes disso
+# pode ainda estar ocupando o período pedido.
+MARGEM_SOBREPOSICAO = timedelta(minutes=DURACAO_MAX_MIN)
 
 
 def listar(
@@ -27,7 +30,7 @@ def listar_que_podem_sobrepor(
     """Agendamentos que começam antes de `data_fim` e não muito antes de `data_inicio`.
 
     A duração depende do serviço, então o filtro exato de sobreposição é feito no service.
-    A margem de 1 dia cobre qualquer serviço de duração razoável.
+    A margem é a duração máxima permitida para um serviço (DURACAO_MAX_MIN).
     """
     query = (
         select(Agendamento)

@@ -279,3 +279,125 @@ class TestDesativar:
         resposta = client.delete(f"{URL}/9999")
 
         assert resposta.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Categoria, descrição e destaque; limite de duração (B4); null (B5)
+# ---------------------------------------------------------------------------
+class TestCamposDoCatalogo:
+    def test_criar_sem_os_tres_campos_usa_padroes(self, client):
+        corpo = criar_servico(client).json()
+
+        assert corpo["categoria"] == "Outros"
+        assert corpo["descricao"] is None
+        assert corpo["destaque"] is False
+
+    def test_criar_com_os_tres_campos(self, client):
+        resposta = client.post(
+            URL,
+            json={
+                "nome": "Polimento",
+                "duracao_min": 120,
+                "preco": "200.00",
+                "categoria": "Carro",
+                "descricao": "Polimento técnico",
+                "destaque": True,
+            },
+        )
+
+        assert resposta.status_code == 201
+        corpo = resposta.json()
+        assert corpo["categoria"] == "Carro"
+        assert corpo["descricao"] == "Polimento técnico"
+        assert corpo["destaque"] is True
+
+    def test_listar_devolve_categoria_descricao_e_destaque(self, client):
+        client.post(
+            URL,
+            json={"nome": "Moto", "duracao_min": 30, "preco": "30.00", "categoria": "Moto", "destaque": True},
+        )
+
+        item = client.get(URL).json()[0]
+
+        assert item["categoria"] == "Moto"
+        assert item["destaque"] is True
+        assert "descricao" in item
+
+    def test_categoria_vazia_retorna_422(self, client):
+        resposta = client.post(URL, json={"nome": "X", "duracao_min": 30, "preco": "1.00", "categoria": ""})
+
+        assert resposta.status_code == 422
+
+    def test_categoria_com_mais_de_30_caracteres_retorna_422(self, client):
+        resposta = client.post(
+            URL, json={"nome": "X", "duracao_min": 30, "preco": "1.00", "categoria": "c" * 31}
+        )
+
+        assert resposta.status_code == 422
+
+    def test_descricao_com_mais_de_500_caracteres_retorna_422(self, client):
+        resposta = client.post(
+            URL, json={"nome": "X", "duracao_min": 30, "preco": "1.00", "descricao": "d" * 501}
+        )
+
+        assert resposta.status_code == 422
+
+
+class TestLimiteDeDuracao:
+    def test_duracao_de_1440_minutos_e_aceita(self, client):
+        assert criar_servico(client, duracao_min=1440).status_code == 201
+
+    def test_duracao_acima_de_1440_retorna_422(self, client):
+        resposta = criar_servico(client, duracao_min=1441)
+
+        assert resposta.status_code == 422
+
+    def test_atualizar_duracao_acima_de_1440_retorna_422(self, client):
+        criado = criar_servico(client).json()
+
+        resposta = client.put(f"{URL}/{criado['id']}", json={"duracao_min": 1441})
+
+        assert resposta.status_code == 422
+
+
+class TestAtualizarNulos:
+    def test_null_limpa_a_descricao(self, client):
+        criado = client.post(
+            URL, json={"nome": "Lavagem", "duracao_min": 60, "preco": "50.00", "descricao": "Com cera"}
+        ).json()
+
+        resposta = client.put(f"{URL}/{criado['id']}", json={"descricao": None})
+
+        assert resposta.status_code == 200
+        assert resposta.json()["descricao"] is None
+
+    def test_null_no_nome_e_ignorado(self, client):
+        criado = criar_servico(client, nome="Lavagem").json()
+
+        resposta = client.put(f"{URL}/{criado['id']}", json={"nome": None})
+
+        assert resposta.status_code == 200
+        assert resposta.json()["nome"] == "Lavagem"
+
+    def test_null_na_categoria_e_ignorado(self, client):
+        criado = client.post(
+            URL, json={"nome": "X", "duracao_min": 30, "preco": "1.00", "categoria": "Carro"}
+        ).json()
+
+        resposta = client.put(f"{URL}/{criado['id']}", json={"categoria": None})
+
+        assert resposta.status_code == 200
+        assert resposta.json()["categoria"] == "Carro"
+
+    def test_alterar_categoria_destaque_e_descricao(self, client):
+        criado = criar_servico(client).json()
+
+        resposta = client.put(
+            f"{URL}/{criado['id']}",
+            json={"categoria": "Moto", "destaque": True, "descricao": "Nova"},
+        )
+
+        corpo = resposta.json()
+        assert corpo["categoria"] == "Moto"
+        assert corpo["destaque"] is True
+        assert corpo["descricao"] == "Nova"

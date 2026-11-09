@@ -200,3 +200,40 @@ class TestAgendamentoPublico:
         resposta = client_sem_token.get(URL)
 
         assert resposta.status_code == 401
+
+
+class TestConflitoComServicoDeUmDia:
+    """Regressão do limite de 1440 min: um serviço de 1 dia precisa bloquear a agenda inteira."""
+
+    INICIO_DIA = "2030-01-10T08:00:00"  # termina às 08:00 de 2030-01-11
+
+    @pytest.fixture
+    def servico_de_um_dia(self, client):
+        return criar_servico(client, nome="Estadia", duracao_min=1440)
+
+    def test_bloqueia_horario_dentro_do_dia_seguinte(self, client, servico_de_um_dia):
+        criar_agendamento(client, servico_de_um_dia["id"], data=self.INICIO_DIA, nome_cliente="A")
+
+        outro = criar_servico(client, nome="Outro")
+        resposta = criar_agendamento(client, outro["id"], data="2030-01-11T07:00:00", nome_cliente="B")
+
+        assert resposta.status_code == 409
+
+    def test_horario_encostado_no_fim_do_dia_e_permitido(self, client, servico_de_um_dia):
+        criar_agendamento(client, servico_de_um_dia["id"], data=self.INICIO_DIA, nome_cliente="A")
+
+        outro = criar_servico(client, nome="Outro")
+        resposta = criar_agendamento(client, outro["id"], data="2030-01-11T08:00:00", nome_cliente="B")
+
+        assert resposta.status_code == 201
+
+    def test_aparece_nos_ocupados_do_dia_seguinte(self, client, servico_de_um_dia):
+        criar_agendamento(client, servico_de_um_dia["id"], data=self.INICIO_DIA, nome_cliente="A")
+
+        resposta = client.get(
+            "/agendamentos/ocupados",
+            params={"data_inicio": "2030-01-11T00:00:00", "data_fim": "2030-01-11T23:59:00"},
+        )
+
+        assert resposta.status_code == 200
+        assert len(resposta.json()) == 1

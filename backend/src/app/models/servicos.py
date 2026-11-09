@@ -5,7 +5,11 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
-#Modelo Serviços 
+# Duração máxima de um serviço (1 dia). Também define a margem da busca de conflitos
+# de agendamento: se mudar aqui, o schema e o repositório acompanham.
+DURACAO_MAX_MIN = 24 * 60
+
+#Modelo Serviços
 class Servico(Base):
 
     __tablename__ = "cadser"

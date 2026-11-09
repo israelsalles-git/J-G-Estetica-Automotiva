@@ -3,8 +3,12 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.servicos import DURACAO_MAX_MIN
+
 Nome = Annotated[str, Field(min_length=1, max_length=120)]
-DuracaoMin = Annotated[int, Field(gt=0, description="Duração em minutos")]
+DuracaoMin = Annotated[
+    int, Field(gt=0, le=DURACAO_MAX_MIN, description=f"Duração em minutos (máx. {DURACAO_MAX_MIN})")
+]
 Preco = Annotated[Decimal, Field(ge=0, max_digits=10, decimal_places=2)]
 Categoria = Annotated[str, Field(min_length=1, max_length=30, description="Ex.: Carro, Moto")]
 Descricao = Annotated[str | None, Field(max_length=500)]
