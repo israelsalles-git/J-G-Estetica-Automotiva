@@ -108,14 +108,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _forgotPassword() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Recuperação de senha será ligada ao backend.'),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final mobile = Responsive.isMobile(context);
@@ -224,16 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _busy ? null : _forgotPassword,
-                  child: const Text(
-                    'Esqueci minha senha',
-                    style: TextStyle(color: AppColors.redGlow, fontSize: 12),
-                  ),
-                ),
-              ),
+              const SizedBox(height: 20),
               if (_error != null) _ErrorBox(message: _error!),
               const SizedBox(height: 4),
               _PrimaryButton(
