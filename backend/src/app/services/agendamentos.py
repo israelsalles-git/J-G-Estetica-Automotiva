@@ -25,6 +25,21 @@ def _intervalo(inicio: datetime, servico: Servico) -> tuple[datetime, datetime]:
     return inicio, inicio + timedelta(minutes=servico.duracao_min)
 
 
+def _formatar_telefone(telefone: str) -> str:
+    """11912345678 -> (11) 91234-5678 | 1132345678 -> (11) 3234-5678."""
+    return f"({telefone[:2]}) {telefone[2:-4]}-{telefone[-4:]}"
+
+
+def _descricao_evento(agendamento: Agendamento, servico: Servico) -> str:
+    linhas = [f"Cliente: {agendamento.nome_cliente}"]
+    # Agendamentos anteriores à inclusão do campo não têm telefone.
+    if agendamento.telefone:
+        linhas.append(f"Telefone: {_formatar_telefone(agendamento.telefone)}")
+        linhas.append(f"WhatsApp: https://wa.me/55{agendamento.telefone}")
+    linhas.append(f"Serviço: {servico.nome}")
+    return "\n".join(linhas)
+
+
 def _montar_evento(agendamento: Agendamento, servico: Servico) -> EventoAgenda:
     """Evento do Google Agenda: começa na data do agendamento e dura o tempo do serviço."""
     inicio, fim = _intervalo(agendamento.data, servico)
@@ -32,7 +47,7 @@ def _montar_evento(agendamento: Agendamento, servico: Servico) -> EventoAgenda:
         titulo=f"{servico.nome} - {agendamento.nome_cliente}",
         inicio=inicio,
         fim=fim,
-        descricao=f"Cliente: {agendamento.nome_cliente}\nServiço: {servico.nome}",
+        descricao=_descricao_evento(agendamento, servico),
     )
 
 

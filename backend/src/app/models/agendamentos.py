@@ -29,6 +29,12 @@ class Agendamento(Base):
         index=True
     )
 
+    # Só dígitos (DDD + número). Vazio nos agendamentos anteriores à inclusão do campo.
+    telefone: Mapped[str | None] = mapped_column(
+        String(11),
+        nullable=True
+    )
+
     servico_id: Mapped[int] = mapped_column(
         ForeignKey("cadser.id"),
         nullable=False,

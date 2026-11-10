@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from app.core.config import settings
+from app.schemas.clientes import Telefone
 from app.schemas.servicos import ServicoRead
 
 
@@ -37,6 +38,7 @@ ServicoId = Annotated[int, Field(gt=0)]
 class AgendamentoCreate(BaseModel):
     data: DataAgendamento
     nome_cliente: NomeCliente
+    telefone: Telefone
     servico_id: ServicoId
 
 
@@ -45,6 +47,7 @@ class AgendamentoUpdate(BaseModel):
 
     data: DataAgendamento | None = None
     nome_cliente: NomeCliente | None = None
+    telefone: Telefone | None = None
     servico_id: ServicoId | None = None
 
 
@@ -54,13 +57,14 @@ class AgendamentoRead(BaseModel):
     id: int
     data: DataHora
     nome_cliente: str
+    telefone: str | None
     servico_id: int
     servico: ServicoRead
     google_event_id: str | None
 
 
 class AgendamentoConfirmado(BaseModel):
-    """Devolvido ao site público após agendar: sem o ID do evento do Google Agenda."""
+    """Devolvido ao site público após agendar: sem telefone nem ID do evento do Google Agenda."""
 
     model_config = ConfigDict(from_attributes=True)
 

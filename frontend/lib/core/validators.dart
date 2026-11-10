@@ -43,6 +43,15 @@ class Validators {
     return null;
   }
 
+  /// Telefone como a API espera: só dígitos, DDD + número, sem o 55 do país.
+  static String phoneDigits(String value) {
+    final digits = digitsOnly(value);
+    if (digits.length > 11 && digits.startsWith('55')) {
+      return digits.substring(2);
+    }
+    return digits;
+  }
+
   static String? email(String? value) {
     final v = value?.trim() ?? '';
     if (v.isEmpty) return 'Informe o e-mail.';

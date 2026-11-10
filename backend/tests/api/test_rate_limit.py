@@ -32,6 +32,7 @@ def agendar(client, servico_id, hora):
         json={
             "data": f"2030-01-10T{hora:02d}:00:00",
             "nome_cliente": "Cliente do site",
+            "telefone": "11912345678",
             "servico_id": servico_id,
         },
     )
@@ -66,7 +67,7 @@ class TestAgendamentoPublico:
 
         resposta = client_sem_token.post(
             "/agendamentos/publico",
-            json={"data": "2030-01-10T14:00:00", "nome_cliente": "X", "servico_id": servico["id"]},
+            json={"data": "2030-01-10T14:00:00", "nome_cliente": "X", "telefone": "11912345678", "servico_id": servico["id"]},
             headers={"Origin": origem},
         )
 
@@ -81,6 +82,7 @@ class TestAgendamentoPublico:
                 json={
                     "data": f"2030-01-11T{hora:02d}:00:00",
                     "nome_cliente": "Cliente do painel",
+                    "telefone": "11912345678",
                     "servico_id": servico["id"],
                 },
             )

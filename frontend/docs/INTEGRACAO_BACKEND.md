@@ -32,7 +32,8 @@ de campo, ajuste só ali.
   O preço chega como texto (`"70.00"`) e é convertido para número. A duração (`60`) vira texto (`"1h"`).
 - **Work** (`GET /trabalhos`): `id, titulo, descricao, categoria, data, imagem_url`.
   `imagem_url` é um caminho relativo (`/arquivos/...`); o `ApiWorksRepository` completa com o endereço da API.
-- **BookingRequest** (enviado a `POST /agendamentos/publico`): `servico_id, data, nome_cliente`.
+- **BookingRequest** (enviado a `POST /agendamentos/publico`): `servico_id, data, nome_cliente, telefone`
+  (telefone obrigatório: DDD + número, 10 ou 11 dígitos, sem o 55; não volta na resposta pública).
   A `data` vai com dia e hora, sem fuso: a API lê no horário de Brasília.
 - **Horários ocupados** (`GET /agendamentos/ocupados`): lista de `{inicio, fim}`, sem nenhum dado do cliente.
   O site desabilita os horários que começam dentro de um desses períodos.

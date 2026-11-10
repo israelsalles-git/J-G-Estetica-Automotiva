@@ -9,16 +9,25 @@ pytestmark = pytest.mark.api
 
 URL = "/agendamentos"
 DATA = "2030-01-10T10:00:00"  # sem fuso: interpretada como horário de Brasília
+TELEFONE = "(11) 91234-5678"  # com máscara: a API guarda só os dígitos
 
 
 def criar_servico(client, nome="Lavagem", duracao_min=60):
     return client.post("/servicos", json={"nome": nome, "duracao_min": duracao_min, "preco": "50.00"}).json()
 
 
-def criar_agendamento(client, servico_id, data=DATA, nome_cliente="João da Silva"):
+def criar_agendamento(
+    client, servico_id, data=DATA, nome_cliente="João da Silva", telefone=TELEFONE
+):
     """Atalho: cria um agendamento e devolve a resposta."""
     return client.post(
-        URL, json={"data": data, "nome_cliente": nome_cliente, "servico_id": servico_id}
+        URL,
+        json={
+            "data": data,
+            "nome_cliente": nome_cliente,
+            "telefone": telefone,
+            "servico_id": servico_id,
+        },
     )
 
 
@@ -53,6 +62,7 @@ class TestCriar:
         assert corpo["id"] > 0
         assert corpo["data"] == "2030-01-10T10:00:00-03:00"
         assert corpo["nome_cliente"] == "João da Silva"
+        assert corpo["telefone"] == "11912345678"
         assert corpo["servico_id"] == servico["id"]
         assert corpo["servico"]["nome"] == "Lavagem"
         assert corpo["google_event_id"] == "evento-1"
@@ -66,6 +76,29 @@ class TestCriar:
         assert evento.titulo == "Polimento - João da Silva"
         assert evento.inicio.isoformat() == "2030-01-10T10:00:00-03:00"
         assert evento.fim.isoformat() == "2030-01-10T11:30:00-03:00"
+
+    def test_evento_na_agenda_leva_o_telefone(self, client, agenda, servico):
+        criar_agendamento(client, servico["id"])
+
+        assert agenda.eventos["evento-1"].descricao == (
+            "Cliente: João da Silva\n"
+            "Telefone: (11) 91234-5678\n"
+            "WhatsApp: https://wa.me/5511912345678\n"
+            "Serviço: Lavagem"
+        )
+
+    def test_telefone_fixo_e_aceito(self, client, agenda, servico):
+        resposta = criar_agendamento(client, servico["id"], telefone="1132345678")
+
+        assert resposta.status_code == 201
+        assert resposta.json()["telefone"] == "1132345678"
+        assert "Telefone: (11) 3234-5678" in agenda.eventos["evento-1"].descricao
+
+    @pytest.mark.parametrize("telefone", ["", "912345678", "5511912345678", "abc"])
+    def test_telefone_invalido_retorna_422(self, client, servico, telefone):
+        resposta = criar_agendamento(client, servico["id"], telefone=telefone)
+
+        assert resposta.status_code == 422
 
     def test_data_com_outro_fuso_e_convertida(self, client, servico):
         resposta = criar_agendamento(client, servico["id"], data="2030-01-10T13:00:00Z")
@@ -92,9 +125,14 @@ class TestCriar:
 
         assert resposta.status_code == 422
 
-    @pytest.mark.parametrize("campo", ["data", "nome_cliente", "servico_id"])
+    @pytest.mark.parametrize("campo", ["data", "nome_cliente", "telefone", "servico_id"])
     def test_campo_obrigatorio_ausente_retorna_422(self, client, servico, campo):
-        dados = {"data": DATA, "nome_cliente": "João", "servico_id": servico["id"]}
+        dados = {
+            "data": DATA,
+            "nome_cliente": "João",
+            "telefone": TELEFONE,
+            "servico_id": servico["id"],
+        }
         del dados[campo]
 
         resposta = client.post(URL, json=dados)
@@ -189,6 +227,28 @@ class TestAtualizar:
         assert corpo["data"] == "2030-02-01T14:00:00-03:00"
         assert corpo["nome_cliente"] == criado["nome_cliente"]  # não enviado: permanece igual
         assert agenda.eventos["evento-1"].inicio == datetime.fromisoformat(corpo["data"])
+
+    def test_altera_telefone_e_atualiza_o_evento(self, client, agenda, servico):
+        criado = criar_agendamento(client, servico["id"]).json()
+
+        resposta = client.put(f"{URL}/{criado['id']}", json={"telefone": "(21) 98765-4321"})
+
+        assert resposta.json()["telefone"] == "21987654321"
+        assert "Telefone: (21) 98765-4321" in agenda.eventos["evento-1"].descricao
+
+    def test_agendamento_antigo_sem_telefone_continua_valido(
+        self, client, agenda, servico, db_session
+    ):
+        criado = criar_agendamento(client, servico["id"]).json()
+        # Simula um agendamento gravado antes de o telefone existir.
+        db_session.get(Agendamento, criado["id"]).telefone = None
+        db_session.commit()
+
+        resposta = client.put(f"{URL}/{criado['id']}", json={"nome_cliente": "Maria"})
+
+        assert resposta.status_code == 200
+        assert resposta.json()["telefone"] is None
+        assert agenda.eventos["evento-1"].descricao == "Cliente: Maria\nServiço: Lavagem"
 
     def test_troca_servico_atualiza_duracao_do_evento(self, client, agenda, servico):
         criado = criar_agendamento(client, servico["id"]).json()

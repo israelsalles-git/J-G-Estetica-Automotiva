@@ -7,11 +7,15 @@ class BookingRequest {
   final String time;
   final String customerName;
 
+  /// Só dígitos: DDD + número (10 ou 11), como a API espera.
+  final String customerPhone;
+
   const BookingRequest({
     required this.service,
     required this.date,
     required this.time,
     required this.customerName,
+    required this.customerPhone,
   });
 
   DateTime get inicio {
@@ -28,6 +32,7 @@ class BookingRequest {
   Map<String, dynamic> toJson() => {
         'data': dataHoraIsoSemFuso(inicio),
         'nome_cliente': customerName,
+        'telefone': customerPhone,
         'servico_id': int.parse(service.id),
       };
 }

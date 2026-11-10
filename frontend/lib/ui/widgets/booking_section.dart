@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/business_config.dart';
@@ -122,6 +123,24 @@ class _BookingForm extends StatelessWidget {
         if (b.errorFor('name') != null) ...[
           const SizedBox(height: 8),
           _InlineMessage(text: b.errorFor('name')!),
+        ],
+        const SizedBox(height: 22),
+        const _StepTitle('4. SEU TELEFONE (WHATSAPP):'),
+        AppTextField(
+          name: 'customerPhone',
+          label: 'Telefone com DDD',
+          hint: '(11) 91234-5678',
+          keyboardType: TextInputType.phone,
+          autofillHints: const [AutofillHints.telephoneNumber],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9()+\- ]')),
+            LengthLimitingTextInputFormatter(20),
+          ],
+          onChanged: b.setCustomerPhone,
+        ),
+        if (b.errorFor('phone') != null) ...[
+          const SizedBox(height: 8),
+          _InlineMessage(text: b.errorFor('phone')!),
         ],
       ]),
     );

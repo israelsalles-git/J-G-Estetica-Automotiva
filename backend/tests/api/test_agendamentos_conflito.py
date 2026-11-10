@@ -13,7 +13,7 @@ def criar_servico(client, nome="Lavagem", duracao_min=60):
 
 def criar_agendamento(client, servico_id, data=INICIO, nome_cliente="João da Silva"):
     return client.post(
-        URL, json={"data": data, "nome_cliente": nome_cliente, "servico_id": servico_id}
+        URL, json={"data": data, "nome_cliente": nome_cliente, "telefone": "11912345678", "servico_id": servico_id}
     )
 
 
@@ -168,7 +168,7 @@ class TestAgendamentoPublico:
     def test_cria_sem_token(self, client_sem_token, servico, agenda):
         resposta = client_sem_token.post(
             self.PATH,
-            json={"data": INICIO, "nome_cliente": "João", "servico_id": servico["id"]},
+            json={"data": INICIO, "nome_cliente": "João", "telefone": "11912345678", "servico_id": servico["id"]},
         )
 
         assert resposta.status_code == 201
@@ -176,6 +176,7 @@ class TestAgendamentoPublico:
         assert corpo["nome_cliente"] == "João"
         assert corpo["servico"]["nome"] == "Lavagem"
         assert "google_event_id" not in corpo
+        assert "telefone" not in corpo  # dado pessoal: não volta para o site
         assert len(agenda.eventos) == 1
 
     def test_conflito_retorna_409(self, client_sem_token, client, servico):
@@ -183,7 +184,7 @@ class TestAgendamentoPublico:
 
         resposta = client_sem_token.post(
             self.PATH,
-            json={"data": INICIO, "nome_cliente": "B", "servico_id": servico["id"]},
+            json={"data": INICIO, "nome_cliente": "B", "telefone": "11912345678", "servico_id": servico["id"]},
         )
 
         assert resposta.status_code == 409
@@ -191,7 +192,7 @@ class TestAgendamentoPublico:
     def test_data_passada_retorna_422(self, client_sem_token, servico):
         resposta = client_sem_token.post(
             self.PATH,
-            json={"data": "2020-01-10T10:00:00", "nome_cliente": "B", "servico_id": servico["id"]},
+            json={"data": "2020-01-10T10:00:00", "nome_cliente": "B", "telefone": "11912345678", "servico_id": servico["id"]},
         )
 
         assert resposta.status_code == 422

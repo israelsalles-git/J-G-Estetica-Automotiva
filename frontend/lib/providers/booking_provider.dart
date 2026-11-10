@@ -44,6 +44,7 @@ class BookingProvider extends ChangeNotifier {
   String _day = BusinessConfig.days.first;
   String? _time;
   String _customerName = '';
+  String _customerPhone = '';
 
   Service? get service =>
       _service ?? (_catalog.services.isEmpty ? null : _catalog.services.first);
@@ -52,6 +53,7 @@ class BookingProvider extends ChangeNotifier {
   DateTime get date => _datas[_day]!;
   String? get time => _time;
   String get customerName => _customerName;
+  String get customerPhone => _customerPhone;
 
   Set<String> _busySlots = const {};
   LoadStatus _slotsStatus = LoadStatus.idle;
@@ -114,6 +116,11 @@ class BookingProvider extends ChangeNotifier {
     _afterEdit('name');
   }
 
+  void setCustomerPhone(String phone) {
+    _customerPhone = phone;
+    _afterEdit('phone');
+  }
+
   void _afterEdit(String field) {
     if (_errors.containsKey(field)) {
       _errors = Map.of(_errors)..remove(field);
@@ -166,6 +173,9 @@ class BookingProvider extends ChangeNotifier {
     final nameError = Validators.name(_customerName);
     if (nameError != null) errors['name'] = nameError;
 
+    final phoneError = Validators.phone(_customerPhone);
+    if (phoneError != null) errors['phone'] = phoneError;
+
     _errors = errors;
     notifyListeners();
     return errors.isEmpty;
@@ -185,6 +195,7 @@ class BookingProvider extends ChangeNotifier {
         date: date,
         time: _time!,
         customerName: _customerName.trim(),
+        customerPhone: Validators.phoneDigits(_customerPhone),
       ));
       _submitStatus = LoadStatus.success;
       // Recarrega os horários: o que acabou de ser marcado sai da lista.

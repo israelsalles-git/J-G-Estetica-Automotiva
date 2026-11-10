@@ -117,7 +117,7 @@ Documentação automática: `http://localhost:8000/docs`
 | `CORS_ORIGINS` | Origens exatas liberadas, em JSON e sem `/` no final. Ex.: `["https://seusite.com.br"]`. **Obrigatório em produção**; `"*"` é recusado | `[]` (nenhuma) |
 | `UPLOAD_DIR` | Pasta onde ficam as fotos da galeria (servidas em `/arquivos`) | `backend/uploads` |
 
-> **Agendamentos:** só pode haver um atendimento por vez. O período de cada agendamento vai do horário marcado até a duração do serviço, e encostar um no outro é permitido. Conflito retorna `409`.
+> **Agendamentos:** só pode haver um atendimento por vez. O período de cada agendamento vai do horário marcado até a duração do serviço, e encostar um no outro é permitido. Conflito retorna `409`. O `telefone` do cliente é obrigatório ao criar (DDD + número, 10 ou 11 dígitos, com ou sem máscara) e vai para a descrição do evento no Google Agenda, junto com um link do WhatsApp.
 >
 > **Rotas públicas (site, sem token):** `GET /servicos`, `GET /trabalhos`, `GET /agendamentos/ocupados` (só horários, sem dados do cliente) e `POST /agendamentos/publico` (o cliente agenda pelo site). Todas as demais exigem login.
 
