@@ -9,7 +9,7 @@ Categoria = Annotated[str | None, Field(max_length=60)]
 
 
 class TrabalhoUpdate(BaseModel):
-    """Campos de texto. A foto não é trocada aqui: para outra foto, cadastre um trabalho novo."""
+    """Campos de texto. A foto não é trocada aqui. Para outra foto, cadastrar um trabalho novo."""
 
     titulo: Titulo = None
     descricao: Descricao = None

@@ -39,8 +39,8 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def commit(db: Session) -> None:
-    """Commit que limpa a sessão se o banco recusar (UNIQUE, CHECK, FK).
-
+    """
+    Commit que limpa a sessão se o banco recusar (UNIQUE, CHECK, FK).
     Sem o rollback, a sessão fica inutilizável (PendingRollbackError) até o fim da requisição.
     O erro é relançado e vira HTTP 409 no handler do main.py.
     """

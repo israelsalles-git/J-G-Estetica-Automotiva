@@ -5,7 +5,6 @@ from urllib.parse import quote, unquote
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Pasta backend/ (config.py fica em backend/src/app/core/)
 BASE_DIR = Path(__file__).resolve().parents[3]
 
 
@@ -16,12 +15,12 @@ class Settings(BaseSettings):
         env_file=BASE_DIR / ".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    app_name: str = "J&G Estética Automotiva API"
+    app_name: str = "Tal Da Estetica Automotiva API"
     app_version: str = "0.1.0"
     environment: str = "development"
     debug: bool = False
 
-    # Pode colar a string do Supabase (Connect > Session pooler) como vem; ela é ajustada abaixo.
+    # string do Supabase como vem, é ajustada abaixo.
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/jg_estetica"
 
     # JWT do login (Authorization: Bearer <token>). Segredo vazio = bloqueia login e rotas protegidas.
@@ -29,22 +28,20 @@ class Settings(BaseSettings):
     jwt_expira_min: int = 480
 
     # CORS: origens (sites) que podem chamar a API pelo navegador. Vazio = nenhuma.
-    # cors_origins: endereços exatos, em JSON no .env (ex.: ["https://site.com.br"]).
-    # cors_origin_regex: padrão para várias origens (ex.: http://localhost:\d+ no desenvolvimento).
     cors_origins: list[str] = []
     cors_origin_regex: str | None = None
 
     # Fuso usado nos agendamentos: datas sem fuso são interpretadas nele.
     timezone: str = "America/Sao_Paulo"
 
-    # Pasta onde ficam as fotos da galeria (servidas em /arquivos). Padrão: backend/uploads.
+    # Pasta onde ficam as fotos da galeria, Padrão: backend/uploads.
     upload_dir: Path = BASE_DIR / "uploads"
 
     # Google Agenda: a integração só liga quando os dois campos estiverem preenchidos.
     google_calendar_id: str = ""
     google_credentials_file: str = ""
 
-    # Login do painel com Google: Client ID do cliente OAuth (tipo Web application).
+    # Login do painel com Google: Client ID do cliente OAuth .
     google_client_id: str = ""
     # Contas Google autorizadas a entrar no painel: lista fixa, em JSON no .env.
     google_admin_emails: list[str] = []
@@ -52,12 +49,8 @@ class Settings(BaseSettings):
     @field_validator("database_url")
     @classmethod
     def normalizar_database_url(cls, url: str) -> str:
-        """Adapta a string do Supabase para o SQLAlchemy + psycopg.
+        #Adapta a string do Supabase para o SQLAlchemy + psycopg.
 
-        - `postgres://` / `postgresql://` -> `postgresql+psycopg://`
-        - codifica caracteres especiais da senha (ex.: `@`, `#`, `/`)
-        - adiciona `sslmode=require` quando o host for do Supabase
-        """
         url = url.strip()
         esquema, sep, resto = url.partition("://")
         if not sep:
@@ -81,14 +74,14 @@ class Settings(BaseSettings):
     @field_validator("google_admin_emails")
     @classmethod
     def normalizar_google_admin_emails(cls, emails: list[str]) -> list[str]:
-        """E-mail é comparado sem diferenciar maiúsculas: guarda sempre em minúsculas."""
+        """E-mail é comparado sem diferenciar maiúsculas, guarda sempre em minúsculas."""
         return [email.strip().lower() for email in emails if email.strip()]
 
     @field_validator("cors_origins")
     @classmethod
     def normalizar_cors_origins(cls, origens: list[str]) -> list[str]:
-        """O navegador envia a origem sem "/" no final; "https://site.com.br/" nunca bateria.
-
+        """
+        O navegador envia a origem sem "/" no final; "https://site.com.br/" nunca bateria.
         "*" é recusado: liberaria qualquer site a chamar a API pelo navegador do usuário.
         """
         origens = [origem.strip().rstrip("/") for origem in origens if origem.strip()]

@@ -92,7 +92,7 @@ def criar(db: Session, agenda: Agenda, dados: AgendamentoCreate) -> Agendamento:
     try:
         return agendamentos_repository.salvar(db, agendamento)
     except Exception:
-        # Não deixa evento órfão na agenda se o banco falhar.
+        # Não deixa evento solto na agenda se o banco falhar.
         if agendamento.google_event_id:
             agenda.remover_evento(agendamento.google_event_id)
         raise
@@ -101,7 +101,7 @@ def criar(db: Session, agenda: Agenda, dados: AgendamentoCreate) -> Agendamento:
 def atualizar(
     db: Session, agenda: Agenda, agendamento_id: int, dados: AgendamentoUpdate
 ) -> Agendamento:
-    """Altera só os campos enviados e reflete a mudança no Google Agenda."""
+    """Altera só os campos enviados e realiza a mudança no Google Agenda."""
     agendamento = obter(db, agendamento_id)
     alteracoes = dados.model_dump(exclude_unset=True, exclude_none=True)
     if not alteracoes:

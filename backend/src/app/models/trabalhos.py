@@ -36,7 +36,7 @@ class Trabalho(Base):
         nullable=True
     )
 
-    # Caminho relativo à pasta de uploads (ex.: "trabalhos/3f2a...jpg")
+    # Caminho relativo à pasta de uploads
     arquivo: Mapped[str] = mapped_column(
         String(255),
         nullable=False

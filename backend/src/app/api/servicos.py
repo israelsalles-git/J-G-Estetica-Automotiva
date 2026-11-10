@@ -17,7 +17,7 @@ def listar_servicos(incluir_inativos: bool = False, db: Session = Depends(get_db
 
 @router.get("/{servico_id}", response_model=ServicoRead)
 def obter_servico(servico_id: int, db: Session = Depends(get_db)):
-    """"Busca serviço por ID"""
+    """Busca serviço por ID"""
     return servicos_service.obter(db, servico_id)
 
 

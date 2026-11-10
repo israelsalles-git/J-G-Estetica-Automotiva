@@ -74,7 +74,7 @@ def criar(
             ),
         )
     except Exception:
-        # Não deixa foto órfã no disco se o banco falhar.
+        # Não deixa foto solta no disco se o banco falhar.
         caminho.unlink(missing_ok=True)
         raise
 

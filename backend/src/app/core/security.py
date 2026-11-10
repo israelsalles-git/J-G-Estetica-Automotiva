@@ -40,7 +40,8 @@ def require_auth(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> Usuario:
-    """Exige o header `Authorization: Bearer <JWT>` e devolve o usuário logado.
+    """
+    Exige o header `Authorization: Bearer <JWT>` e devolve o usuário logado.
 
     Token ausente, inválido, expirado ou de usuário inativo/removido -> 401.
     """

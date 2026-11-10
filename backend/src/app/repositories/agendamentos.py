@@ -8,8 +8,7 @@ from app.core.database import commit
 from app.models.agendamentos import Agendamento
 from app.models.servicos import DURACAO_MAX_MIN
 
-# Igual à duração máxima de um serviço: nenhum agendamento que começou antes disso
-# pode ainda estar ocupando o período pedido.
+#Duração máxima de um serviço: nenhum agendamento que começou antes disso, pode ainda estar ocupando o período pedido.
 MARGEM_SOBREPOSICAO = timedelta(minutes=DURACAO_MAX_MIN)
 
 
@@ -27,7 +26,8 @@ def listar(
 def listar_que_podem_sobrepor(
     db: Session, data_inicio: datetime, data_fim: datetime
 ) -> Sequence[Agendamento]:
-    """Agendamentos que começam antes de `data_fim` e não muito antes de `data_inicio`.
+    """
+    Agendamentos que começam antes de `data_fim` e não muito antes de `data_inicio`.
 
     A duração depende do serviço, então o filtro exato de sobreposição é feito no service.
     A margem é a duração máxima permitida para um serviço (DURACAO_MAX_MIN).

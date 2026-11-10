@@ -16,7 +16,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit(LIMITE_LOGIN)
 def login(request: Request, dados: LoginRequest, db: Session = Depends(get_db)):
-    """Troca e-mail e senha por um token de acesso (JWT)"""
+    """Troca e-mail e senha pelo token de acesso (JWT)"""
     return auth_service.login(db, dados)
 
 

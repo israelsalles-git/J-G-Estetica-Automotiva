@@ -9,7 +9,7 @@ from app.schemas.servicos import ServicoRead
 
 
 def para_fuso_local(valor: datetime) -> datetime:
-    """Datas sem fuso são interpretadas no fuso da empresa; as demais são convertidas para ele."""
+    """Datas sem fuso são interpretadas no fuso da empresa, o restante são convertidas para ele."""
     fuso = ZoneInfo(settings.timezone)
     if valor.tzinfo is None:
         return valor.replace(tzinfo=fuso)

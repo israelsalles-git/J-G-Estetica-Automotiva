@@ -41,7 +41,7 @@ class Servico(Base):
         nullable=False
     )
 
-    # Categoria do catálogo do site (ex.: Carro, Moto); o site agrupa os serviços por ela
+    # Categoria do catálogo do site, o site agrupa os serviços por ela
     categoria: Mapped[str] = mapped_column(
         String(30),
         nullable=False,

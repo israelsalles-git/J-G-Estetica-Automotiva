@@ -18,10 +18,9 @@ from app.schemas.agendamentos import (
 from app.services import agendamentos as agendamentos_service
 
 # Rotas públicas (site do cliente): sem token e sem dados pessoais na resposta.
-# Precisa ser incluído no app ANTES de `router`, senão "/ocupados" cairia em "/{agendamento_id}".
 router_publico = APIRouter(prefix="/agendamentos", tags=["agendamentos (site)"])
 
-# Rotas do painel: todas exigem token, porque os agendamentos têm o nome do cliente (dado pessoal).
+# Rotas do painel: todas exigem token, porque os agendamentos têm o nome do cliente.
 router = APIRouter(
     prefix="/agendamentos", tags=["agendamentos"], dependencies=[Depends(require_auth)]
 )
@@ -45,7 +44,7 @@ def listar_horarios_ocupados(
 )
 @limiter.limit(LIMITE_AGENDAMENTO_PUBLICO)  # fica abaixo do decorator da rota
 def solicitar_agendamento(
-    request: Request,  # exigido pelo limiter (lê o IP de quem chamou)
+    request: Request,  # exige limite lê o IP de quem chamou
     dados: AgendamentoCreate,
     db: Session = Depends(get_db),
     agenda: Agenda = Depends(get_agenda),
@@ -87,7 +86,7 @@ def atualizar_agendamento(
     db: Session = Depends(get_db),
     agenda: Agenda = Depends(get_agenda),
 ):
-    """Atualiza agendamento pelo ID (e o evento no Google Agenda)"""
+    """Atualiza agendamento pelo ID e o evento no Google Agenda"""
     return agendamentos_service.atualizar(db, agenda, agendamento_id, dados)
 
 

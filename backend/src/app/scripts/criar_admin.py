@@ -1,7 +1,11 @@
-"""Cadastra um usuário do painel admin (não há cadastro público pela API).
+"""
+Cadastra um usuário do painel admin, não há cadastro público pela API.
 
-Uso (a partir da pasta backend/src, com o .env configurado e a migration aplicada):
-    python -m app.scripts.criar_admin
+pasta backend/src
+.env configurado
+migration aplicada
+
+Comando: python -m app.scripts.criar_admin
 """
 import sys
 from getpass import getpass
@@ -9,7 +13,7 @@ from getpass import getpass
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-import app.models  # noqa: F401  (registra todos os models antes de configurar os relacionamentos)
+import app.models
 from app.core.database import SessionLocal
 from app.schemas.auth import SENHA_MIN, UsuarioCreate
 from app.services import auth as auth_service
