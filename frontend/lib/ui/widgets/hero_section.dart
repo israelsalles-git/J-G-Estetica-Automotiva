@@ -139,7 +139,7 @@ class _Check extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      const Icon(Icons.check_circle_outline, color: AppColors.red, size: 16),
+      const Icon(Icons.check_circle_outline, color: AppColors.whatsapp, size: 16),
       const SizedBox(width: 6),
       Text(text, style: const TextStyle(fontSize: 12, color: Colors.white)),
     ]);
