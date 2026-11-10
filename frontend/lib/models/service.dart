@@ -1,7 +1,3 @@
-/// Serviço do catálogo (ex.: Lavagem de Carro).
-///
-/// `fromJson` é o único ponto que conhece o formato da API (`GET /servicos`):
-/// se a API mudar nome de campo, ajuste só aqui.
 class Service {
   final String id;
   final String category;
@@ -13,7 +9,6 @@ class Service {
   final String imageUrl;
   final bool vip;
 
-  /// `false` = serviço pausado (some do site, continua no painel).
   final bool active;
 
   const Service({
@@ -38,7 +33,6 @@ class Service {
       description: (json['descricao'] as String?) ?? '',
       duration: formatarDuracao(minutos),
       durationMinutes: minutos,
-      // A API envia o preço como texto com centavos ("70.00"); aceitamos número também.
       price: double.parse(json['preco'].toString()),
       vip: (json['destaque'] as bool?) ?? false,
       active: (json['ativo'] as bool?) ?? true,
@@ -48,7 +42,6 @@ class Service {
   String get priceLabel => 'R\$ ${price.toStringAsFixed(2)}';
 }
 
-/// 60 -> "1h", 90 -> "1h30", 45 -> "45min".
 String formatarDuracao(int minutos) {
   final horas = minutos ~/ 60;
   final resto = minutos % 60;

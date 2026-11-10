@@ -5,7 +5,6 @@ import '../core/load_status.dart';
 import '../models/service.dart';
 import '../services/catalog_repository.dart';
 
-/// Guarda a lista de serviços e o estado do carregamento (loading/sucesso/erro).
 class CatalogProvider extends ChangeNotifier {
   final CatalogRepository _repository;
 
@@ -20,7 +19,6 @@ class CatalogProvider extends ChangeNotifier {
   List<Service> get services => _services;
   String? get error => _error;
 
-  /// Categorias na ordem em que aparecem no catálogo (ex.: Carro, Moto).
   List<String> get categories {
     final seen = <String>[];
     for (final s in _services) {

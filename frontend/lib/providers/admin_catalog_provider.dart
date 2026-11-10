@@ -5,9 +5,6 @@ import '../core/load_status.dart';
 import '../models/service.dart';
 import '../services/catalog_repository.dart';
 
-/// Catálogo do PAINEL: todos os serviços (inclusive os pausados) e as ações
-/// de criar, editar, pausar e reativar. Separado do `CatalogProvider` do site,
-/// que só guarda os serviços ativos.
 class AdminCatalogProvider extends ChangeNotifier {
   AdminCatalogProvider({required CatalogRepository repository})
       : _repository = repository;
@@ -24,10 +21,8 @@ class AdminCatalogProvider extends ChangeNotifier {
   List<Service> get services => _services;
   String? get error => _error;
 
-  /// Há um cadastro/edição/pausa em andamento.
   bool get isSaving => _saving;
 
-  /// Erro da última ação (null se deu certo).
   String? get actionError => _actionError;
 
   Future<void> load() async {
@@ -51,15 +46,12 @@ class AdminCatalogProvider extends ChangeNotifier {
   Future<bool> update(String id, Map<String, dynamic> dados) =>
       _mutate(() => _repository.updateService(id, dados));
 
-  /// "Pausar": exclusão lógica (`DELETE /servicos/{id}`).
   Future<bool> pause(String id) =>
       _mutate(() => _repository.deactivateService(id));
 
-  /// "Reativar": `PUT /servicos/{id}` com `{"ativo": true}`.
   Future<bool> reactivate(String id) =>
       _mutate(() => _repository.updateService(id, {'ativo': true}));
 
-  /// Roda a ação e, se der certo, recarrega a lista para refletir o banco.
   Future<bool> _mutate(Future<void> Function() action) async {
     _saving = true;
     _actionError = null;
@@ -70,7 +62,6 @@ class AdminCatalogProvider extends ChangeNotifier {
         _services = await _repository.fetchServices(includeInactive: true);
         _status = LoadStatus.success;
       } catch (_) {
-        // A ação deu certo; se só a releitura falhou, o botão "Tentar novamente" resolve.
       }
       _saving = false;
       notifyListeners();

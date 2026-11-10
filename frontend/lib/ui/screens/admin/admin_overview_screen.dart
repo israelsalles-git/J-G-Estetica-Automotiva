@@ -14,10 +14,6 @@ import 'package:frontend/ui/widgets/admin/admin_ui.dart';
 import 'package:frontend/ui/widgets/gradient_button.dart';
 import 'package:provider/provider.dart';
 
-/// Página única do painel: resumo do dia, agenda do dia, liberação de
-/// horários, fotos e tabela de preços.
-/// O menu lateral (AdminShell) rola até cada bloco usando as chaves abaixo,
-/// do mesmo jeito que a navbar do site do cliente.
 class AdminOverviewScreen extends StatelessWidget {
   const AdminOverviewScreen({
     super.key,
@@ -40,7 +36,6 @@ class AdminOverviewScreen extends StatelessWidget {
         builder: (context, constraints) {
           final twoColumns = constraints.maxWidth >= 1000;
 
-          // Agenda do dia (PNL-5) ao lado da liberação de horários.
           final agenda = twoColumns
               ? const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,7 +131,6 @@ class _HeroCard extends StatelessWidget {
       ],
     );
 
-    // Números reais: vêm da agenda de hoje (API).
     const stats = _HeroStats();
 
     final button = GradientButton(
@@ -178,8 +172,6 @@ class _HeroCard extends StatelessWidget {
   }
 }
 
-/// Os dois números do topo, calculados com os agendamentos de hoje (API).
-/// Enquanto carrega, ou se a API falhar, mostram "—" (nunca um número inventado).
 class _HeroStats extends StatefulWidget {
   const _HeroStats();
 
@@ -289,8 +281,6 @@ class _StatBox extends StatelessWidget {
   }
 }
 
-/// Abre o site do cliente (HomePage) por cima do painel, com um botão
-/// flutuante para voltar ao admin.
 class _ClientPortalPreview extends StatelessWidget {
   const _ClientPortalPreview();
 

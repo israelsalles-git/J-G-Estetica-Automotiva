@@ -3,8 +3,6 @@ import '../core/datas.dart';
 import '../models/work.dart';
 import 'works_repository.dart';
 
-/// Galeria pela API: leitura pública (`GET /trabalhos`) e cadastro/edição/remoção
-/// do painel admin (exigem o token do login).
 class ApiWorksRepository implements WorksRepository {
   ApiWorksRepository(this._api);
 

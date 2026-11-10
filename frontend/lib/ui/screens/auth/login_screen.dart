@@ -6,9 +6,6 @@ import 'package:google_sign_in_web/web_only.dart' as gweb;
 import 'package:frontend/ui/theme/app_theme.dart';
 import 'package:frontend/ui/widgets/app_container.dart';
 
-/// Tela de login: e-mail e senha, ou entrar com o Google.
-/// Quem decide o que acontece depois do login é quem chama a tela,
-/// através do [onLoggedIn].
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
@@ -78,7 +75,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) return 'Informe sua senha.';
-    // Mesmo mínimo do back-end (SENHA_MIN = 8).
     if (value.length < 8) return 'A senha deve ter pelo menos 8 caracteres.';
     return null;
   }
@@ -111,7 +107,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final mobile = Responsive.isMobile(context);
-    // Em janelas baixas a logo encolhe, para a tela caber sem precisar rolar.
     final alturaTela = MediaQuery.sizeOf(context).height;
     final larguraLogo = (alturaTela * 0.4).clamp(160.0, 300.0);
 
@@ -128,8 +123,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: SafeArea(
           child: Center(
-            // Continua rolando com o mouse/dedo se a janela for muito baixa,
-            // mas sem mostrar a barra de rolagem.
             child: ScrollConfiguration(
               behavior:
                   ScrollConfiguration.of(context).copyWith(scrollbars: false),
@@ -236,8 +229,6 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
               const _OrDivider(),
               const SizedBox(height: 20),
-              // O botão do Google tem largura em pixels (entre 200 e 400), então
-              // ela é calculada pelo espaço do card, para caber em qualquer tela.
               LayoutBuilder(
                 builder: (context, constraints) {
                   final largura = constraints.maxWidth.clamp(200.0, 400.0);
@@ -246,7 +237,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Center(
                       child: _googlePronto
                           ? KeyedSubtree(
-                              // Nova chave quando a largura muda, para o botão ser redesenhado.
                               key: ValueKey(largura),
                               child: gweb.renderButton(
                                 configuration: gweb.GSIButtonConfiguration(
@@ -367,8 +357,6 @@ class _ErrorBox extends StatelessWidget {
   }
 }
 
-/// Botão principal em largura total (o GradientButton do site tem largura
-/// do texto e alinha o rótulo à esquerda, então aqui há uma versão própria).
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({
     required this.label,

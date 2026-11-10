@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/ui/theme/app_theme.dart';
 
-// Peças visuais compartilhadas do painel admin.
-// Usam o AppColors do site do cliente, então o visual é exatamente o mesmo.
-
-/// Cartão padrão: fundo `card`, borda fina e cantos arredondados.
 class AdminCard extends StatelessWidget {
   const AdminCard({
     super.key,
@@ -29,7 +25,6 @@ class AdminCard extends StatelessWidget {
   }
 }
 
-/// Superfície clicável com borda (abas, blocos da grade, itens do menu).
 class AdminTapSurface extends StatelessWidget {
   const AdminTapSurface({
     super.key,
@@ -65,7 +60,6 @@ class AdminTapSurface extends StatelessWidget {
   }
 }
 
-/// Etiqueta arredondada, igual à "EXCLUSIVO FINAIS DE SEMANA" do site.
 class AdminPill extends StatelessWidget {
   const AdminPill({
     super.key,
@@ -98,7 +92,6 @@ class AdminPill extends StatelessWidget {
   }
 }
 
-/// Rótulo pequeno em caixa alta (cabeçalhos de tabela, campos, seções).
 class AdminLabel extends StatelessWidget {
   const AdminLabel(this.text, {super.key});
 
@@ -118,7 +111,6 @@ class AdminLabel extends StatelessWidget {
   }
 }
 
-/// Cabeçalho de painel: ícone, título, subtítulo e um item opcional à direita.
 class AdminPanelHeader extends StatelessWidget {
   const AdminPanelHeader({
     super.key,
@@ -206,7 +198,6 @@ class AdminOutlineButton extends StatelessWidget {
   }
 }
 
-/// Seletor suspenso no estilo do painel. O pai precisa dar uma largura.
 class AdminDropdown extends StatelessWidget {
   const AdminDropdown({
     super.key,
@@ -246,7 +237,6 @@ class AdminDropdown extends StatelessWidget {
   }
 }
 
-/// Estilo padrão dos campos de texto do painel.
 InputDecoration adminInputDecoration({String? hint, IconData? icon}) {
   OutlineInputBorder outline(Color color) => OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

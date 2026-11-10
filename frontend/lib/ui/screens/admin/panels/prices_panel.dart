@@ -8,7 +8,6 @@ import 'package:frontend/ui/widgets/admin/admin_ui.dart';
 import 'package:frontend/ui/widgets/gradient_button.dart';
 import 'package:provider/provider.dart';
 
-// Proporção de cada coluna (cabeçalho e linhas usam os mesmos valores).
 const _flexName = 5;
 const _flexCategory = 2;
 const _flexTime = 2;
@@ -18,12 +17,9 @@ const _flexAction = 4;
 
 const _categorias = ['Carro', 'Moto'];
 
-/// "R$ 70,00" (com vírgula, como o painel sempre mostrou).
 String _preco(double valor) =>
     'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
 
-/// Painel "Tabela de Preços e Catálogo": lista de verdade (inclusive os
-/// serviços pausados), com adicionar, ajustar, pausar e reativar pela API.
 class PricesPanel extends StatefulWidget {
   const PricesPanel({super.key});
 
@@ -37,7 +33,6 @@ class _PricesPanelState extends State<PricesPanel> {
   @override
   void initState() {
     super.initState();
-    // Depois do primeiro desenho, para não avisar listeners no meio do build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<AdminCatalogProvider>().load();
     });
@@ -49,7 +44,6 @@ class _PricesPanelState extends State<PricesPanel> {
     );
   }
 
-  /// Mostra o resultado e, se deu certo, atualiza também o catálogo do site.
   void _depoisDaAcao(bool ok, String sucesso, AdminCatalogProvider admin,
       CatalogProvider site) {
     if (!mounted) return;
@@ -355,8 +349,6 @@ class _ServiceRow extends StatelessWidget {
   }
 }
 
-/// Diálogo de "Adicionar serviço" (sem [initial]) ou "Ajustar" (com [initial],
-/// edita todos os campos). Devolve os dados já no formato da API, ou null.
 class _ServiceDialog extends StatefulWidget {
   const _ServiceDialog({this.initial});
 
@@ -428,9 +420,7 @@ class _ServiceDialogState extends State<_ServiceDialog> {
       'nome': name,
       'categoria': _category,
       'duracao_min': minutes,
-      // A API espera o preço como texto com centavos.
       'preco': price.toStringAsFixed(2),
-      // Vazio vira null, o que limpa a descrição no back.
       'descricao': description.isEmpty ? null : description,
       'destaque': _vip,
     });

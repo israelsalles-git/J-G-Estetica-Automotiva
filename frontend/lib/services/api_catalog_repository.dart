@@ -2,8 +2,6 @@ import '../core/api_client.dart';
 import '../models/service.dart';
 import 'catalog_repository.dart';
 
-/// Serviços pela API: leitura pública (`GET /servicos`) e cadastro/edição/pausa
-/// do painel admin (exigem o token do login).
 class ApiCatalogRepository implements CatalogRepository {
   ApiCatalogRepository(this._api);
 

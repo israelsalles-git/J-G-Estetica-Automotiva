@@ -9,15 +9,12 @@ import '../models/service.dart';
 import '../services/booking_repository.dart';
 import 'catalog_provider.dart';
 
-/// Próximo dia da semana (ex.: sábado) a partir de hoje. Se hoje já for esse dia, é hoje.
 DateTime proximoDia(int weekday, {DateTime? agora}) {
   final hoje = agora ?? DateTime.now();
   final faltam = (weekday - hoje.weekday) % 7;
   return DateTime(hoje.year, hoje.month, hoje.day + faltam);
 }
 
-/// Estado do agendamento: serviço, dia, horário, nome do cliente, disponibilidade,
-/// validação dos campos e envio (loading/sucesso/erro).
 class BookingProvider extends ChangeNotifier {
   final CatalogProvider _catalog;
   final BookingRepository _repository;
@@ -27,7 +24,6 @@ class BookingProvider extends ChangeNotifier {
     required BookingRepository repository,
   })  : _catalog = catalog,
         _repository = repository {
-    // Quando o catálogo carrega/muda, o resumo precisa se redesenhar.
     _catalog.addListener(notifyListeners);
     _loadAvailability();
   }
@@ -38,29 +34,25 @@ class BookingProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  // Data real de cada dia do site (ex.: "Sábado" -> o próximo sábado).
   final Map<String, DateTime> _datas = {
     for (final dia in BusinessConfig.days)
       dia: proximoDia(BusinessConfig.weekdays[dia]!),
   };
 
-  // ---- escolhas do cliente ----
-  Service? _service; // null = ainda não escolheu → usa o primeiro do catálogo
+
+  Service? _service; 
   String _day = BusinessConfig.days.first;
   String? _time;
   String _customerName = '';
 
-  /// Serviço escolhido (ou o primeiro do catálogo, enquanto nada foi escolhido).
   Service? get service =>
       _service ?? (_catalog.services.isEmpty ? null : _catalog.services.first);
   String get day => _day;
 
-  /// Data real do dia escolhido (o próximo sábado ou domingo).
   DateTime get date => _datas[_day]!;
   String? get time => _time;
   String get customerName => _customerName;
 
-  // ---- disponibilidade ----
   Set<String> _busySlots = const {};
   LoadStatus _slotsStatus = LoadStatus.idle;
   String? _slotsError;
@@ -69,7 +61,6 @@ class BookingProvider extends ChangeNotifier {
   LoadStatus get slotsStatus => _slotsStatus;
   String? get slotsError => _slotsError;
 
-  /// Horário que não pode ser escolhido: já ocupado ou já passou hoje.
   bool isUnavailable(String horario) =>
       _busySlots.contains(horario) || _jaPassou(horario);
 
@@ -85,13 +76,10 @@ class BookingProvider extends ChangeNotifier {
     return inicio.isBefore(DateTime.now());
   }
 
-  // ---- validação ----
   Map<String, String> _errors = const {};
 
-  /// Erro de um campo ('service', 'day', 'time' ou 'name'), ou null.
   String? errorFor(String field) => _errors[field];
 
-  // ---- envio ----
   LoadStatus _submitStatus = LoadStatus.idle;
   String? _submitError;
   BookingResult? _result;
@@ -101,7 +89,6 @@ class BookingProvider extends ChangeNotifier {
   String? get submitError => _submitError;
   String? get resultMessage => _result?.message;
 
-  /// Primeira mensagem de erro de validação (para mostrar num aviso).
   String? get firstError => _errors.values.isEmpty ? null : _errors.values.first;
 
   void selectService(Service service) {
@@ -159,7 +146,6 @@ class BookingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Valida as escolhas. Guarda os erros por campo e retorna true se está tudo certo.
   bool validate() {
     final errors = <String, String>{};
 

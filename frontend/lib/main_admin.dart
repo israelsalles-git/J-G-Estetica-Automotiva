@@ -15,27 +15,18 @@ import 'package:frontend/ui/screens/admin/admin_shell.dart';
 import 'package:frontend/ui/screens/auth/login_screen.dart';
 import 'package:frontend/ui/theme/app_theme.dart';
 
-/// Ponto de entrada só do painel admin (não mexe no main.dart do cliente).
-/// Rode, de dentro da pasta frontend (porta fixa: precisa estar cadastrada no Google Cloud):
-///   flutter run -d chrome -t lib/main_admin.dart --web-port=5000
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Um único cliente HTTP: o login guarda o token nele e os repositórios o usam.
   final api = ApiClient(baseUrl: apiBaseUrl);
 
-  // Mesmos providers do main.dart do cliente, para o botão
-  // "Ver portal do cliente" conseguir abrir a HomePage.
   final catalog = CatalogProvider(repository: ApiCatalogRepository(api))..load();
 
   runApp(
     MultiProvider(
       providers: [
-        // Agenda do painel (usada pela Agenda do dia e pela Liberação de Horários).
         Provider<AgendaService>.value(value: ApiAgendaService(api)),
         ChangeNotifierProvider<CatalogProvider>.value(value: catalog),
-        // Catálogo do painel (inclui serviços pausados). Separado do do site
-        // para não misturar os dois; o painel chama load() ao abrir.
         ChangeNotifierProvider<AdminCatalogProvider>(
           create: (_) =>
               AdminCatalogProvider(repository: ApiCatalogRepository(api)),
@@ -70,8 +61,6 @@ class AdminApp extends StatelessWidget {
   }
 }
 
-/// Decide a tela: loading enquanto tenta restaurar a sessão salva, login se
-/// não houver sessão, painel se houver. Também cuida de "Sair" e de sessão vencida.
 class _AuthGate extends StatefulWidget {
   const _AuthGate({required this.authService, required this.api});
 
@@ -89,7 +78,6 @@ class _AuthGateState extends State<_AuthGate> {
   @override
   void initState() {
     super.initState();
-    // O ApiClient avisa aqui quando a API responde 401 a uma chamada com token.
     widget.api.onSessaoExpirada = _sessaoExpirou;
     _restaurar();
   }
@@ -114,10 +102,9 @@ class _AuthGateState extends State<_AuthGate> {
     });
   }
 
-  /// Pode ser chamado várias vezes seguidas (vários 401 juntos): só a primeira vale.
   void _sessaoExpirou() {
     if (!mounted || _carregando || _user == null) return;
-    widget.authService.signOut(); // apaga também o token salvo
+    widget.authService.signOut(); 
     _voltarAoLogin();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -134,7 +121,6 @@ class _AuthGateState extends State<_AuthGate> {
   }
 
   void _voltarAoLogin() {
-    // Fecha telas empilhadas (ex.: "Ver portal do cliente") antes de trocar a tela.
     Navigator.of(context).popUntil((rota) => rota.isFirst);
     setState(() => _user = null);
   }

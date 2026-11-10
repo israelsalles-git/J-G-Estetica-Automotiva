@@ -4,15 +4,11 @@ import '../core/datas.dart';
 import '../models/booking_request.dart';
 import 'booking_repository.dart';
 
-/// Disponibilidade e envio do agendamento pela API
-/// (`GET /agendamentos/ocupados` e `POST /agendamentos/publico`, ambos públicos).
 class ApiBookingRepository implements BookingRepository {
   ApiBookingRepository(this._api);
 
   final ApiClient _api;
 
-  // A API devolve datas com o fuso de Brasília (-03:00), que não muda desde 2019.
-  // Subtraindo as 3 horas, o DateTime passa a representar o relógio de Brasília.
   static DateTime _relogioDeBrasilia(String iso) =>
       DateTime.parse(iso).toUtc().subtract(const Duration(hours: 3));
 

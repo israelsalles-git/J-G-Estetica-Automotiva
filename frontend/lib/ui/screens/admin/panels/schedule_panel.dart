@@ -8,7 +8,6 @@ import 'package:frontend/ui/theme/app_theme.dart';
 import 'package:frontend/ui/widgets/admin/admin_ui.dart';
 import 'package:provider/provider.dart';
 
-// Dias e horários vêm do BusinessConfig (a mesma fonte do site do cliente).
 
 enum AdminSlotState { livre, marcado }
 
@@ -16,7 +15,6 @@ String _two(int n) => n.toString().padLeft(2, '0');
 
 String _hhmm(DateTime d) => '${_two(d.hour)}:${_two(d.minute)}';
 
-/// Próximos dias em que a empresa atende (hoje inclusive, se for dia de atendimento).
 List<DateTime> _proximosDiasDeAtendimento(int quantidade) {
   final hoje = DateTime.now();
   final dias = BusinessConfig.weekdays.values.toSet();
@@ -25,8 +23,6 @@ List<DateTime> _proximosDiasDeAtendimento(int quantidade) {
   ].where((d) => dias.contains(d.weekday)).take(quantidade).toList();
 }
 
-/// Atendimento que ocupa o início do horário "HH:mm" no [dia], ou null se estiver livre.
-/// Um serviço de 90 min que começa às 09:00 ocupa o bloco das 09:00 e o das 10:00.
 AgendaAppointment? _ocupante(
   DateTime dia,
   String horario,
@@ -40,8 +36,6 @@ AgendaAppointment? _ocupante(
   return null;
 }
 
-/// Painel "Liberação de Horários": abas de dias, grade de horários e
-/// lista dos atendimentos confirmados. Tudo vem da API (AgendaService).
 class SchedulePanel extends StatefulWidget {
   const SchedulePanel({super.key});
 
@@ -66,7 +60,6 @@ class _SchedulePanelState extends State<SchedulePanel> {
     _carregar();
   }
 
-  /// Troca de dia (ou tenta de novo) e busca na API.
   void _abrirDia(int index) {
     setState(() {
       _selectedDay = index;
@@ -81,7 +74,6 @@ class _SchedulePanelState extends State<SchedulePanel> {
     try {
       final itens =
           await context.read<AgendaService>().loadDay(_dates[_selectedDay]);
-      // Ignora respostas antigas se a pessoa já trocou de dia.
       if (!mounted || pedido != _requestId) return;
       setState(() {
         _itens = [...itens]..sort((a, b) => a.start.compareTo(b.start));

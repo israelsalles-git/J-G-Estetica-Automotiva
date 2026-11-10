@@ -5,7 +5,6 @@ import '../core/load_status.dart';
 import '../models/work.dart';
 import '../services/works_repository.dart';
 
-/// Estado da galeria de trabalhos: lista + carregamento + adicionar/editar/remover.
 class WorksProvider extends ChangeNotifier {
   final WorksRepository _repository;
 
@@ -22,10 +21,8 @@ class WorksProvider extends ChangeNotifier {
   List<Work> get works => _works;
   String? get error => _error;
 
-  /// Há um cadastro/edição/remoção em andamento.
   bool get isSaving => _saving;
 
-  /// Erro da última ação de cadastro/edição/remoção (null se deu certo).
   String? get actionError => _actionError;
 
   Future<void> load() async {
@@ -43,7 +40,6 @@ class WorksProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Cadastra um trabalho novo; o mais recente aparece primeiro.
   Future<bool> add(WorkDraft draft) => _mutate(() async {
         final created = await _repository.createWork(draft);
         _works = [created, ..._works];

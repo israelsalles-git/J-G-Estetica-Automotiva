@@ -43,8 +43,6 @@ String _two(int n) => n.toString().padLeft(2, '0');
 
 String _hhmm(DateTime d) => '${_two(d.hour)}:${_two(d.minute)}';
 
-/// Painel "Agenda do dia" (PNL-5): atendimentos do dia ordenados por horário,
-/// navegação entre dias e destaque do atendimento em andamento.
 class DayAgendaPanel extends StatefulWidget {
   const DayAgendaPanel({super.key});
 
@@ -66,7 +64,6 @@ class _DayAgendaPanelState extends State<DayAgendaPanel> {
     super.initState();
     _day = _dateOnly(_now);
     _fetch();
-    // Atualiza o "agora" a cada 30 s para o destaque acompanhar o relógio.
     _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
@@ -91,7 +88,6 @@ class _DayAgendaPanelState extends State<DayAgendaPanel> {
     final request = ++_requestId;
     try {
       final result = await context.read<AgendaService>().loadDay(_day);
-      // Ignora respostas antigas se o usuário já trocou de dia.
       if (!mounted || request != _requestId) return;
       final sorted = [...result]..sort((a, b) => a.start.compareTo(b.start));
       setState(() {
@@ -284,7 +280,6 @@ class _NavButton extends StatelessWidget {
   }
 }
 
-/// Faixa com 7 dias em volta do dia escolhido, para pular entre dias rápido.
 class _WeekStrip extends StatelessWidget {
   const _WeekStrip({
     required this.day,

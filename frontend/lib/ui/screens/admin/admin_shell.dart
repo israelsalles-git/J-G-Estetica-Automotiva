@@ -15,8 +15,6 @@ class _NavItem {
   final IconData icon;
 }
 
-/// Casca do painel admin: menu lateral (ou barra inferior no celular),
-/// barra superior e a página com os painéis.
 class AdminShell extends StatefulWidget {
   const AdminShell({
     super.key,
@@ -25,13 +23,10 @@ class AdminShell extends StatefulWidget {
     this.checkOnline,
   });
 
-  /// Quem está logado (nome e e-mail vão no menu do avatar).
   final AuthUser user;
 
-  /// Chamado quando a pessoa escolhe "Sair" no menu.
   final VoidCallback onLogout;
 
-  /// Pergunta se a API está online (alimenta o "STATUS" da barra superior).
   final Future<bool> Function()? checkOnline;
 
   @override
@@ -46,7 +41,6 @@ class _AdminShellState extends State<AdminShell> {
     _NavItem('Agenda & Horários', 'Agenda', Icons.calendar_month_outlined),
   ];
 
-  // Uma chave por item do menu, na mesma ordem de _items.
   final _heroKey = GlobalKey();
   final _photosKey = GlobalKey();
   final _pricesKey = GlobalKey();
@@ -333,7 +327,6 @@ class _TopBar extends StatelessWidget {
 
 enum _ApiState { verificando, online, offline }
 
-/// "STATUS: ONLINE/OFFLINE" de verdade: consulta a API ao abrir e a cada minuto.
 class _ApiStatus extends StatefulWidget {
   const _ApiStatus({required this.check});
 
@@ -406,7 +399,6 @@ class _ApiStatusState extends State<_ApiStatus> {
   }
 }
 
-/// Avatar com as iniciais da pessoa logada e menu (nome, e-mail, Sair).
 class _UserMenu extends StatelessWidget {
   const _UserMenu({required this.user, required this.onLogout});
 

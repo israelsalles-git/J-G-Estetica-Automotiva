@@ -4,11 +4,6 @@ import '../core/datas.dart';
 
 bool _filled(String? v) => v != null && v.trim().isNotEmpty;
 
-/// Um trabalho da galeria "Últimos Trabalhos".
-///
-/// Só [id] e [imageUrl] são obrigatórios; título, descrição, categoria e data
-/// são opcionais. [imageUrl] é o endereço completo da foto na API
-/// (ou um caminho de asset, quando usado sem backend).
 class Work {
   final String id;
   final String imageUrl;
@@ -26,8 +21,6 @@ class Work {
     this.date,
   });
 
-  /// Converte o JSON de `GET /trabalhos`. [baseUrl] completa o caminho da foto
-  /// (`imagem_url` vem como "/arquivos/trabalhos/...").
   factory Work.fromJson(Map<String, dynamic> json, {String baseUrl = ''}) {
     final rawDate = json['data'];
     return Work(
@@ -43,11 +36,9 @@ class Work {
   bool get isNetworkImage =>
       imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
 
-  /// Tem algum texto para mostrar abaixo da foto?
   bool get hasDetails =>
       _filled(title) || _filled(description) || _filled(category) || date != null;
 
-  /// Data no formato dd/MM/aaaa (ou null).
   String? get dateLabel {
     final d = date;
     if (d == null) return null;
@@ -56,7 +47,6 @@ class Work {
   }
 }
 
-/// Dados para CADASTRAR um trabalho novo (formulário do painel admin).
 class WorkDraft {
   final Uint8List imageBytes;
   final String imageFileName;
@@ -74,7 +64,6 @@ class WorkDraft {
     this.date,
   });
 
-  /// Campos de texto do envio multipart (a imagem vai à parte, no campo `imagem`).
   Map<String, String> toFields() => {
         if (_filled(title)) 'titulo': title!.trim(),
         if (_filled(description)) 'descricao': description!.trim(),

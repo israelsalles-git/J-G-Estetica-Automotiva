@@ -586,7 +586,6 @@ class _PhotoCard extends StatelessWidget {
   }
 }
 
-/// Diálogo de edição: título e descrição. Devolve o [Work] alterado, ou null se cancelar.
 class _EditWorkDialog extends StatefulWidget {
   const _EditWorkDialog({required this.work});
 
