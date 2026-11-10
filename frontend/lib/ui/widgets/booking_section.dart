@@ -129,7 +129,7 @@ class _BookingForm extends StatelessWidget {
         AppTextField(
           name: 'customerPhone',
           label: 'Telefone com DDD',
-          hint: '(11) 91234-5678',
+          hint: '(DDD) XXXX-XXXX',
           keyboardType: TextInputType.phone,
           autofillHints: const [AutofillHints.telephoneNumber],
           inputFormatters: [

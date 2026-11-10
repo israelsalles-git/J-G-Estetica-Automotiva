@@ -42,6 +42,9 @@ class ApiAuthService implements AuthService {
 
   final ApiClient _api;
   bool _googleIniciado = false;
+
+  /// true só depois que o initialize() do Google terminou nesta página.
+  bool _googlePronto = false;
   final _googleLogins = StreamController<AuthUser>.broadcast();
 
   @override
@@ -66,6 +69,7 @@ class ApiAuthService implements AuthService {
     if (_googleIniciado) return;
     _googleIniciado = true;
     await GoogleSignIn.instance.initialize(clientId: googleClientId);
+    _googlePronto = true;
     GoogleSignIn.instance.authenticationEvents.listen(
       (evento) async {
         if (evento is! GoogleSignInAuthenticationEventSignIn) return;
@@ -122,13 +126,15 @@ class ApiAuthService implements AuthService {
 
   @override
   Future<void> signOut() async {
+    // Primeiro apaga a sessão local: é isso que de fato desloga o painel.
     _api.setToken(null);
     try {
-      await GoogleSignIn.instance.signOut();
+      await (await SharedPreferences.getInstance()).remove(_tokenKey);
     } catch (_) {
     }
+    if (!_googlePronto) return;
     try {
-      await (await SharedPreferences.getInstance()).remove(_tokenKey);
+      await GoogleSignIn.instance.signOut();
     } catch (_) {
     }
   }
