@@ -111,6 +111,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final mobile = Responsive.isMobile(context);
+    // Em janelas baixas a logo encolhe, para a tela caber sem precisar rolar.
+    final alturaTela = MediaQuery.sizeOf(context).height;
+    final larguraLogo = (alturaTela * 0.4).clamp(160.0, 300.0);
 
     return Scaffold(
       body: Container(
@@ -125,22 +128,28 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: SafeArea(
           child: Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(mobile ? 20 : 32),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const _Logo(),
-                    const SizedBox(height: 24),
-                    _buildCard(mobile),
-                    const SizedBox(height: 20),
-                    const Text(
-                      '© 2026 Tal da Estética',
-                      style: TextStyle(color: AppColors.muted, fontSize: 11),
-                    ),
-                  ],
+            // Continua rolando com o mouse/dedo se a janela for muito baixa,
+            // mas sem mostrar a barra de rolagem.
+            child: ScrollConfiguration(
+              behavior:
+                  ScrollConfiguration.of(context).copyWith(scrollbars: false),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(mobile ? 20 : 32),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _Logo(width: larguraLogo),
+                      const SizedBox(height: 24),
+                      _buildCard(mobile),
+                      const SizedBox(height: 20),
+                      const Text(
+                        '© 2026 Tal da Estética',
+                        style: TextStyle(color: AppColors.muted, fontSize: 11),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -291,13 +300,15 @@ InputDecoration _decoration({
 }
 
 class _Logo extends StatelessWidget {
-  const _Logo();
+  const _Logo({required this.width});
+
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return Image.asset(
       'assets/images/logo.png',
-      width: 300,
+      width: width,
       fit: BoxFit.contain,
       semanticLabel: 'Tal da Estética Automotiva',
     );
